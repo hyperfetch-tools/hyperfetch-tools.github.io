@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://hyperfetch-tools.github.io/sitemap.xml
+Sitemap: https://hyperfetch-tools.github.io/myinvois/sitemap.xml
+Sitemap: https://hyperfetch-tools.github.io/mypayroll/sitemap.xml

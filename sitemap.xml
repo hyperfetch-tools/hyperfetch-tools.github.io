@@ -6,6 +6,16 @@
     <priority>1.0</priority>
   </url>
   <url>
+    <loc>https://hyperfetch-tools.github.io/ea-payslip/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://hyperfetch-tools.github.io/bank-giro/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
     <loc>https://hyperfetch-tools.github.io/myinvois/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>

@@ -42,7 +42,8 @@ export const BUILTIN_MY_RULES = [
   { rx: /\b(tnb|tenaga\s*nasional|air\s*selangor|syabas|saj|indah\s*water|iwk|gas\s*malaysia|sesb|sarawak\s*energy)\b/i, code: '6110' },
   { rx: /\b(unifi|tm\s*tech|telekom|time\s*dotcom|maxis|celcom|digi|celcomdigi|u\s*mobile|umobile|yes\s*4g|yes\s*5g)\b/i, code: '6120' },
   { rx: /\b(petronas|shell|petron|bhp|caltex|touch\s*n\s*go|tng\s*rfid|plus\s*express|duke|akleh|grab|maxim|rapidkl|mrt|ktmb|parking)\b/i, code: '6210' },
-  { rx: /\b(jaya\s*grocer|village\s*grocer|mydin|99\s*speedmart|speedmart|kk\s*mart|lotus|aeon|mamak|kopi|zus|starbucks|mcdonald|kfc|foodpanda|shopeefood|grabfood|restaurant|restoran|cafe|bistro)\b/i, code: '6310' },
+  { rx: /\b(jaya\s*grocer|village\s*grocer|mydin|99\s*speedmart|speedmart|kk\s*mart|lotus|aeon|mamak|kopi|zus|starbucks|mcdonald|kfc|foodpanda|shopeefood|grabfood|restaurant|restoran|cafe|bistro|lazada|shopee)\b/i, code: '6310' },
+  { rx: /\b(receive\s*from\s*wallet|fund\s*transfer|transfer\s*to\s*wallet|duitnow\s*transfer)\b/i, code: '9010' },
   { rx: /\b(google\s*\*|google\s*ads|meta\s*ads|facebook|openai|chatgpt|canva|apify|adobe|microsoft|cloudflare|github|aws|digitalocean|apple\.com\/bill)\b/i, code: '6410' },
   { rx: /\b(service\s*charge|stamp\s*duty|bank\s*fee|ibg\s*fee|rentas|annual\s*fee|sst\s*charge|duitnow\s*fee)\b/i, code: '6510' },
   { rx: /\b(rental|sewa|management\s*corp|jmb|maintenance\s*fee|coworking|common\s*ground|worq)\b/i, code: '7010' },
@@ -202,37 +203,63 @@ export function parseStatementInput(rawText) {
     return { sourceMode: `DELIMITED (${matrix.delimiter === ';' ? 'Semicolon' : matrix.delimiter === '\t' ? 'TSV' : 'CSV'})`, transactions: txns };
   }
 
-  // Fallback: Raw Pasted or Extracted Bank PDF Lines (Maybank, TNG eWallet, CIMB, Public Bank, GXBank)
+  // Fallback: Raw Pasted or Extracted Bank / TNG eWallet PDF Lines
   const lines = String(rawText || '').replace(/\r\n/g, '\n').split('\n');
   const txns = [];
-  // Matches: <Date> <Description> <TxnAmount (+/-/DR/CR/RM)> [Optional Running Balance]
+  // Matches: <Date> <Description...> <TxnAmount (+/-/DR/CR/RM)> [Optional Running Balance]
   const lineWithBalRx =
-    /^\s*(\d{1,4}[\/\-]\d{1,2}[\/\-]\d{2,4}|\d{1,2}\s+[A-Za-z]{3}(?:\s+\d{2,4})?)\s+(.+?)\s+([+\-]?(?:RM\s*)?[\d,]+\.\d{2}(?:\s*(?:DR|CR|\+|-))?)(?:\s+(?:RM\s*)?[\d,]+\.\d{2}(?:\s*(?:DR|CR))?)?\s*$/i;
+    /^\s*(\d{1,4}[\/\-]\d{1,2}[\/\-]\d{2,4}|\d{1,2}\s+[A-Za-z]{3}(?:\s+\d{2,4})?)\s+(.+?)\s+([+\-]?(?:RM\s*)?[\d,]+\.\d{2}(?:\s*(?:DR|CR|\+|-))?)(?:\s+([+\-]?(?:RM\s*)?[\d,]+\.\d{2}(?:\s*(?:DR|CR))?))?\s*$/i;
 
+  let prevBalance = null;
   for (const rawLine of lines) {
     if (txns.length >= MAX_ROWS) break;
     const m = rawLine.match(lineWithBalRx);
     if (!m) continue;
     const dateStr = sanitizeField(m[1], 20);
-    const descStr = sanitizeField(m[2], 110);
+    let descStr = sanitizeField(m[2], 140);
     if (/^(opening|closing|beginning|ending|brought\s*forward|balance\s*b\/f|balance\s*c\/f)/i.test(descStr)) continue;
+    if (/^failed\b/i.test(descStr)) continue;
+
+    // Clean TNG eWallet noise (leading "Success", 12+ digit reference IDs, TNGOW3... codes)
+    descStr = descStr
+      .replace(/^success\s+/i, '')
+      .replace(/\b\d{10,}[A-Z0-9]*\b/g, ' ')
+      .replace(/\bTNGOW[A-Z0-9]+\b/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
 
     const amtRaw = m[3];
+    const balRaw = m[4] || '';
     const isCr = /\bCR\b|\+$/i.test(amtRaw) || /^\+/.test(amtRaw);
     const isDr = /\bDR\b|-$/i.test(amtRaw) || /^-/.test(amtRaw);
     const num = Math.abs(parseMoneySigned(amtRaw) || 0);
+    const curBal = balRaw ? Math.abs(parseMoneySigned(balRaw) || 0) : null;
     if (num <= 0) continue;
 
-    // Heuristic: if neither CR nor DR is explicit, positive credit keywords map to inflow (incl. TNG Reload / GO+ / Cashback)
-    const looksIncome =
-      isCr ||
-      (!isDr &&
-        /\b(payout|salary|gaji|deposit|credit|hibah|refund|cashback|reload|top\s*up\s*from|transfer\s*from|received\s*from|go\+\s*return)\b/i.test(
+    let looksIncome = false;
+    if (isCr) {
+      looksIncome = true;
+    } else if (isDr) {
+      looksIncome = false;
+    } else if (curBal !== null && prevBalance !== null) {
+      // Exact balance delta check (works for TNG Wallet Transaction History where amounts have no +/-!)
+      if (Math.abs(prevBalance + num - curBal) < 0.02) looksIncome = true;
+      else if (Math.abs(prevBalance - num - curBal) < 0.02) looksIncome = false;
+      else {
+        looksIncome = /\b(receive\s*from\s*wallet|payout|salary|gaji|deposit|credit|hibah|refund|cashback|reload|top\s*up|transfer\s*from|received\s*from|go\+\s*return)\b/i.test(
           descStr
-        ));
+        );
+      }
+    } else {
+      looksIncome = /\b(receive\s*from\s*wallet|payout|salary|gaji|deposit|credit|hibah|refund|cashback|reload|top\s*up|transfer\s*from|received\s*from|go\+\s*return)\b/i.test(
+        descStr
+      );
+    }
+    if (curBal !== null) prevBalance = curBal;
+
     txns.push({
       date: dateStr,
-      description: descStr,
+      description: descStr.slice(0, 110) || 'Transaction',
       inflow: looksIncome ? num : 0,
       outflow: looksIncome ? 0 : num,
       explicitCode: '',
@@ -765,7 +792,8 @@ if (typeof document !== 'undefined') {
       periodLabel: $('repMonth').value,
     });
     if (!currentLedger.rows.length) {
-      $('loadedFileLabel').textContent = 'Could not detect transactions — check CSV columns or paste statement lines.';
+      $('loadedFileLabel').textContent = 'Could not detect transactions — check extracted lines below or paste CSV.';
+      $('rawEditorDrawer').classList.add('open');
       return;
     }
     renderLedgerResults();
@@ -959,7 +987,7 @@ if (typeof document !== 'undefined') {
       for (const item of tc.items) {
         const str = String(item.str || '').trim();
         if (!str) continue;
-        const y = Math.round((item.transform?.[5] || 0) / 3) * 3;
+        const y = Math.round((item.transform?.[5] || 0) / 5) * 5;
         const x = item.transform?.[4] || 0;
         if (!buckets.has(y)) buckets.set(y, []);
         buckets.get(y).push({ x, str });

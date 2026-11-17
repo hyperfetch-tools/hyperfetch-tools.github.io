@@ -12,6 +12,7 @@ import {
   readAndCompressImageFile,
   renderDesignerPreviewDom,
   exportDesignerPngBlob,
+  exportDesignerPdfBytes,
 } from './report-designer.mjs';
 
 export const CLOUD_AUTOPAY_EXEC_URL =
@@ -1292,7 +1293,7 @@ if (typeof document !== 'undefined') {
       return;
     }
 
-    const pdfBytes = generateMonthlyPnlPdfBytes(exportLedger, { watermark: !proOk, design: activeDesign });
+    const pdfBytes = await exportDesignerPdfBytes(exportLedger, activeDesign, { watermark: !proOk });
     triggerDownload(`Monthly_Report_${exportLedger.meta.periodLabel}.pdf`, pdfBytes, 'application/pdf');
   }
 

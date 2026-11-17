@@ -381,7 +381,7 @@ function loadImageElement(src) {
 /**
  * Renders the user's exact custom background, uploaded assets, block order & styling to a crisp PNG Blob.
  */
-export async function exportDesignerPngBlob(ledger, design, { watermark = true } = {}) {
+async function renderDesignToCanvas(ledger, design, { watermark = true, widthPx = 1080 } = {}) {
   const theme = DESIGN_THEMES[design.themeKey] || DESIGN_THEMES.NAVY;
   const accent = design.accentColor || theme.accent;
   const textCol = design.textColor || theme.text;
@@ -425,10 +425,12 @@ export async function exportDesignerPngBlob(ledger, design, { watermark = true }
   if (watermark) H += 64;
   H = design.canvasFormat === 'STORY' ? Math.max(1920, H + PAD) : Math.max(460, H + PAD);
 
+  const scale = widthPx / W;
   const canvas = document.createElement('canvas');
-  canvas.width = W;
-  canvas.height = H;
+  canvas.width = Math.round(W * scale);
+  canvas.height = Math.round(H * scale);
   const ctx = canvas.getContext('2d');
+  ctx.scale(scale, scale);
 
   // Paint customizable background
   ctx.fillStyle = bg1;
@@ -464,9 +466,9 @@ export async function exportDesignerPngBlob(ledger, design, { watermark = true }
       ctx.stroke();
     }
   } else if (design.bgType === 'IMAGE' && bgImg) {
-    const scale = Math.max(W / bgImg.width, H / bgImg.height);
-    const dw = bgImg.width * scale;
-    const dh = bgImg.height * scale;
+    const bgScale = Math.max(W / bgImg.width, H / bgImg.height);
+    const dw = bgImg.width * bgScale;
+    const dh = bgImg.height * bgScale;
     ctx.drawImage(bgImg, (W - dw) / 2, (H - dh) / 2, dw, dh);
     ctx.fillStyle = hexToRgba(bg1, design.bgOverlayOpacity ?? 0.2);
     ctx.fillRect(0, 0, W, H);
@@ -594,5 +596,89 @@ export async function exportDesignerPngBlob(ledger, design, { watermark = true }
     ctx.fillText('Made free with Hyperfetch Statement Studio · hyperfetch-tools.github.io/statement-pnl', PAD + 20, H - 44);
   }
 
+  return { canvas, widthPx: canvas.width, heightPx: canvas.height };
+}
+
+export async function exportDesignerPngBlob(ledger, design, { watermark = true } = {}) {
+  const { canvas } = await renderDesignToCanvas(ledger, design, { watermark, widthPx: 1080 });
   return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+}
+
+/**
+ * Wraps raw JPEG bytes into a 100% valid ISO 32000 PDF 1.4 page matching the exact visual aspect ratio.
+ */
+export function compileImagePdfBytes(jpegBytes, imgW, imgH, { watermark = true, watermarkUri = 'https://hyperfetch-tools.github.io/statement-pnl/?ref=pdf_watermark' } = {}) {
+  const pageW = 595.28;
+  const pageH = Number(((pageW * imgH) / Math.max(1, imgW)).toFixed(2));
+  const contentStr = `q\n${pageW.toFixed(2)} 0 0 ${pageH.toFixed(2)} 0 0 cm\n/Im1 Do\nQ\n`;
+  const encoder = new TextEncoder();
+
+  const header1 = encoder.encode(
+    `4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${imgW} /Height ${imgH} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpegBytes.length} >>\nstream\n`
+  );
+  const footer1 = encoder.encode('\nendstream\nendobj\n');
+
+  const chunks = [];
+  let offset = 0;
+  const pushBytes = (b) => {
+    chunks.push(b);
+    offset += b.length;
+  };
+  const pushStr = (s) => pushBytes(encoder.encode(s));
+
+  pushStr('%PDF-1.4\n%HyperfetchVisualPDF\n');
+  const offsets = [0];
+
+  offsets.push(offset);
+  pushStr('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+
+  offsets.push(offset);
+  pushStr('2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n');
+
+  offsets.push(offset);
+  const annotPart = watermark ? ' /Annots [6 0 R]' : '';
+  pushStr(
+    `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageW.toFixed(2)} ${pageH.toFixed(2)}] /Resources << /XObject << /Im1 4 0 R >> >> /Contents 5 0 R${annotPart} >>\nendobj\n`
+  );
+
+  offsets.push(offset);
+  pushBytes(header1);
+  pushBytes(jpegBytes);
+  pushBytes(footer1);
+
+  offsets.push(offset);
+  pushStr(`5 0 obj\n<< /Length ${encoder.encode(contentStr).length} >>\nstream\n${contentStr}endstream\nendobj\n`);
+
+  if (watermark) {
+    offsets.push(offset);
+    pushStr(
+      `6 0 obj\n<< /Type /Annot /Subtype /Link /Rect [30 8 ${(pageW - 30).toFixed(2)} 46] /Border [0 0 0] /A << /Type /Action /S /URI /URI (${watermarkUri}) >> >>\nendobj\n`
+    );
+  }
+
+  const totalObjs = watermark ? 7 : 6;
+  const xrefStart = offset;
+  pushStr(`xref\n0 ${totalObjs}\n0000000000 65535 f \n`);
+  for (let i = 1; i < totalObjs; i++) {
+    pushStr(`${String(offsets[i]).padStart(10, '0')} 00000 n \n`);
+  }
+  pushStr(`trailer\n<< /Size ${totalObjs} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF\n`);
+
+  const out = new Uint8Array(offset);
+  let ptr = 0;
+  for (const c of chunks) {
+    out.set(c, ptr);
+    ptr += c.length;
+  }
+  return out;
+}
+
+export async function exportDesignerPdfBytes(ledger, design, { watermark = true } = {}) {
+  const { canvas, widthPx, heightPx } = await renderDesignToCanvas(ledger, design, { watermark, widthPx: 1440 });
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.94);
+  const b64 = dataUrl.split(',')[1] || '';
+  const binStr = atob(b64);
+  const jpegBytes = new Uint8Array(binStr.length);
+  for (let i = 0; i < binStr.length; i++) jpegBytes[i] = binStr.charCodeAt(i);
+  return compileImagePdfBytes(jpegBytes, widthPx, heightPx, { watermark });
 }

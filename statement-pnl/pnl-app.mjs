@@ -4,6 +4,15 @@
  * 100% Stateless Browser-RAM Engine. Zero external dependencies. Strict CSP ('self') compatible.
  */
 
+import {
+  DESIGN_STORAGE_KEY,
+  DESIGN_THEMES,
+  createDefaultDesignState,
+  hexToRgbNorm,
+  renderDesignerPreviewDom,
+  exportDesignerPngBlob,
+} from './report-designer.mjs';
+
 export const CLOUD_AUTOPAY_EXEC_URL =
   'https://script.google.com/macros/s/AKfycbyxApiw79oG_JHvooqtsc3ctxSwqXuzPqVUM64T2Ifj9aYK2kxRVwq-ABUgO0cOBK6y/exec';
 
@@ -663,7 +672,7 @@ function fmtMoney(n) {
   return Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export function generateMonthlyPnlPdfBytes(ledger, { watermark = true } = {}) {
+export function generateMonthlyPnlPdfBytes(ledger, { watermark = true, design = null } = {}) {
   const ops = [];
   const rectFill = (x, y, w, h, r, g, b) =>
     ops.push(`${r.toFixed(3)} ${g.toFixed(3)} ${b.toFixed(3)} rg ${x.toFixed(2)} ${y.toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re f`);
@@ -679,52 +688,78 @@ export function generateMonthlyPnlPdfBytes(ledger, { watermark = true } = {}) {
     text(s, Math.max(36, rightX - s.length * charW), y, font, size, r, g, b);
   };
 
-  // Header
-  rectFill(36, 760, 523.28, 52, 0.043, 0.122, 0.227);
-  text(ledger.meta.reportTitle.toUpperCase(), 46, 792, 'F2', 11.5, 1, 1, 1);
-  text(`Account / Entity: ${ledger.meta.accountHolder}  |  Transactions: ${ledger.totals.count}`, 46, 774, 'F1', 8.2, 0.78, 0.84, 0.92);
-  textRight(`PERIOD: ${ledger.meta.periodLabel}`, 548, 791, 'F3', 10, 0.43, 0.91, 0.72);
+  const theme = (design && DESIGN_THEMES[design.themeKey]) || DESIGN_THEMES.NAVY;
+  const [hr, hg, hb] = hexToRgbNorm(theme.headerBg);
+  const [hfr, hfg, hfb] = hexToRgbNorm(theme.headerFg);
+  const [ar, ag, ab] = hexToRgbNorm((design && design.accentColor) || theme.accent);
+  const blocks = (design && Array.isArray(design.blocks) ? design.blocks : createDefaultDesignState().blocks).filter((b) => b.visible);
 
-  // Summary Cards
   const t = ledger.totals;
-  rectFill(36, 700, 168, 48, 0.92, 0.99, 0.95);
-  rectStroke(36, 700, 168, 48, 0.04, 0.59, 0.41, 0.8);
-  text('TOTAL EARNINGS (INFLOW)', 44, 733, 'F2', 7.5, 0.02, 0.38, 0.27);
-  text(`RM ${fmtMoney(t.totalInflow)}`, 44, 712, 'F3', 11.5, 0.02, 0.38, 0.27);
+  let y = 808;
 
-  rectFill(213.6, 700, 168, 48, 0.99, 0.95, 0.95);
-  rectStroke(213.6, 700, 168, 48, 0.73, 0.11, 0.11, 0.8);
-  text('TOTAL SPENDING (OUTFLOW)', 221.6, 733, 'F2', 7.5, 0.65, 0.12, 0.12);
-  text(`RM ${fmtMoney(t.totalOutflow)}`, 221.6, 712, 'F3', 11.5, 0.65, 0.12, 0.12);
+  for (const blk of blocks) {
+    if (y < 95) break;
+    if (blk.id === 'TITLE') {
+      rectFill(36, y - 48, 523.28, 48, hr, hg, hb);
+      text(ledger.meta.reportTitle.toUpperCase(), 46, y - 20, 'F2', 11.5, hfr, hfg, hfb);
+      text(`Period: ${ledger.meta.periodLabel}  |  Transactions: ${t.count}`, 46, y - 36, 'F1', 8.2, hfr, hfg, hfb);
+      y -= 62;
+    } else if (blk.id === 'NAME') {
+      rectFill(36, y - 32, 523.28, 32, 0.96, 0.97, 0.99);
+      rectFill(36, y - 32, 4, 32, ar, ag, ab);
+      text('PREPARED FOR / ACCOUNT HOLDER', 48, y - 12, 'F2', 7.2, 0.35, 0.4, 0.5);
+      text(ledger.meta.accountHolder, 48, y - 25, 'F2', 10, 0.06, 0.09, 0.16);
+      y -= 44;
+    } else if (blk.id === 'KPIS') {
+      rectFill(36, y - 44, 168, 44, 0.92, 0.99, 0.95);
+      rectStroke(36, y - 44, 168, 44, ar, ag, ab, 0.8);
+      text('TOTAL EARNINGS', 44, y - 14, 'F2', 7.5, ar, ag, ab);
+      text(`RM ${fmtMoney(t.totalInflow)}`, 44, y - 32, 'F3', 11, ar, ag, ab);
 
-  rectFill(391.2, 700, 168, 48, 0.95, 0.97, 1);
-  rectStroke(391.2, 700, 168, 48, 0.09, 0.2, 0.36, 0.8);
-  text('NET CASHFLOW (MYR)', 399.2, 733, 'F2', 7.5, 0.09, 0.2, 0.36);
-  text(`RM ${fmtMoney(t.netCashflow)}`, 399.2, 712, 'F3', 11.5, 0.09, 0.2, 0.36);
+      rectFill(213.6, y - 44, 168, 44, 0.99, 0.95, 0.95);
+      rectStroke(213.6, y - 44, 168, 44, 0.73, 0.11, 0.11, 0.8);
+      text('TOTAL SPENDING', 221.6, y - 14, 'F2', 7.5, 0.65, 0.12, 0.12);
+      text(`RM ${fmtMoney(t.totalOutflow)}`, 221.6, y - 32, 'F3', 11, 0.65, 0.12, 0.12);
 
-  // Category Breakdown Table
-  let y = 674;
-  rectFill(36, y - 4, 523.28, 18, 0.09, 0.2, 0.36);
-  text('CODE', 44, y + 1, 'F2', 8.2, 1, 1, 1);
-  text('CATEGORY / LINE ACCOUNT', 95, y + 1, 'F2', 8.2, 1, 1, 1);
-  textRight('TXNS', 330, y + 1, 'F2', 8.2, 1, 1, 1);
-  textRight('INFLOW (RM)', 440, y + 1, 'F2', 8.2, 1, 1, 1);
-  textRight('OUTFLOW (RM)', 550, y + 1, 'F2', 8.2, 1, 1, 1);
-
-  y -= 20;
-  for (const cat of ledger.categoryBreakdown.slice(0, 18)) {
-    text(cat.code, 44, y, 'F3', 8.4);
-    text(cat.label.slice(0, 40), 95, y, 'F1', 8.4);
-    textRight(String(cat.count), 330, y, 'F3', 8.4);
-    textRight(fmtMoney(cat.inflow), 440, y, 'F3', 8.4);
-    textRight(fmtMoney(cat.outflow), 550, y, 'F3', 8.4);
-    line(36, y - 5, 559.28, y - 5);
-    y -= 18;
+      rectFill(391.2, y - 44, 168, 44, 0.95, 0.97, 1);
+      rectStroke(391.2, y - 44, 168, 44, hr, hg, hb, 0.8);
+      text('NET BALANCE', 399.2, y - 14, 'F2', 7.5, hr, hg, hb);
+      text(`RM ${fmtMoney(t.netCashflow)}`, 399.2, y - 32, 'F3', 11, hr, hg, hb);
+      y -= 58;
+    } else if (blk.id === 'CATEGORIES') {
+      rectFill(36, y - 18, 523.28, 18, hr, hg, hb);
+      text('CATEGORY', 44, y - 12, 'F2', 8.2, hfr, hfg, hfb);
+      textRight('TXNS', 330, y - 12, 'F2', 8.2, hfr, hfg, hfb);
+      textRight('INFLOW (RM)', 440, y - 12, 'F2', 8.2, hfr, hfg, hfb);
+      textRight('OUTFLOW (RM)', 550, y - 12, 'F2', 8.2, hfr, hfg, hfb);
+      y -= 32;
+      for (const cat of ledger.categoryBreakdown.slice(0, 12)) {
+        if (y < 95) break;
+        text(cat.label.slice(0, 42), 44, y, 'F1', 8.4);
+        textRight(String(cat.count), 330, y, 'F3', 8.4);
+        textRight(fmtMoney(cat.inflow), 440, y, 'F3', 8.4);
+        textRight(fmtMoney(cat.outflow), 550, y, 'F3', 8.4);
+        line(36, y - 5, 559.28, y - 5);
+        y -= 17;
+      }
+      y -= 8;
+    } else if (blk.id === 'TRANSACTIONS') {
+      rectFill(36, y - 16, 523.28, 16, 0.94, 0.96, 0.98);
+      text('RECENT TRANSACTIONS', 44, y - 11, 'F2', 8, 0.15, 0.22, 0.35);
+      y -= 28;
+      for (const r of ledger.rows.slice(0, 8)) {
+        if (y < 95) break;
+        text(`${r.date}  ${r.description.slice(0, 38)} (${r.categoryLabel.slice(0, 18)})`, 44, y, 'F1', 8);
+        textRight(r.inflow > 0 ? `+${fmtMoney(r.inflow)}` : `-${fmtMoney(r.outflow)}`, 550, y, 'F3', 8.2);
+        y -= 15;
+      }
+      y -= 8;
+    } else if (blk.id === 'NOTE') {
+      rectFill(36, y - 24, 523.28, 24, 0.96, 0.97, 0.99);
+      text(String((design && design.customNote) || '').slice(0, 85), 44, y - 15, 'F1', 8.2, 0.25, 0.3, 0.4);
+      y -= 34;
+    }
   }
-
-  y -= 10;
-  rectFill(36, y - 4, 523.28, 22, 0.96, 0.97, 0.99);
-  text(`LHDN Tax Relief / Statutory Tagged (Code 8010): RM ${fmtMoney(t.taxReliefTotal)}   |   Auto-Categorized: ${t.autoRatePct}%`, 44, y + 3, 'F2', 8.2, 0.15, 0.22, 0.35);
 
   if (watermark) {
     rectFill(36, 16, 523.28, 22, 0.94, 0.99, 0.96);
@@ -818,6 +853,41 @@ if (typeof document !== 'undefined') {
   }
 
   let activeCategories = loadCategories();
+
+  function loadDesignState() {
+    try {
+      const raw = localStorage.getItem(DESIGN_STORAGE_KEY);
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (p && Array.isArray(p.blocks) && p.blocks.length >= 4) return p;
+      }
+    } catch {}
+    return createDefaultDesignState();
+  }
+
+  let activeDesign = loadDesignState();
+
+  function saveDesignState() {
+    localStorage.setItem(DESIGN_STORAGE_KEY, JSON.stringify(activeDesign));
+  }
+
+  function refreshDesignerPreview() {
+    const canvasEl = $('designerCanvas');
+    if (!canvasEl || !currentLedger) return;
+    renderDesignerPreviewDom(canvasEl, currentLedger, activeDesign, {
+      onMove(fromIdx, toIdx) {
+        const [moved] = activeDesign.blocks.splice(fromIdx, 1);
+        activeDesign.blocks.splice(toIdx, 0, moved);
+        saveDesignState();
+        refreshDesignerPreview();
+      },
+      onToggle(idx) {
+        activeDesign.blocks[idx].visible = !activeDesign.blocks[idx].visible;
+        saveDesignState();
+        refreshDesignerPreview();
+      },
+    });
+  }
 
   function saveCategories() {
     localStorage.setItem(CATS_STORAGE_KEY, JSON.stringify(activeCategories));
@@ -1108,6 +1178,7 @@ if (typeof document !== 'undefined') {
     });
 
     refreshExportBanner();
+    refreshDesignerPreview();
   }
 
   function runCompile() {
@@ -1193,7 +1264,13 @@ if (typeof document !== 'undefined') {
       return;
     }
 
-    const pdfBytes = generateMonthlyPnlPdfBytes(exportLedger, { watermark: !proOk });
+    if (kind === 'PNG') {
+      const pngBlob = await exportDesignerPngBlob(exportLedger, activeDesign, { watermark: !proOk });
+      if (pngBlob) triggerDownload(`Report_Card_${exportLedger.meta.periodLabel}.png`, pngBlob, 'image/png');
+      return;
+    }
+
+    const pdfBytes = generateMonthlyPnlPdfBytes(exportLedger, { watermark: !proOk, design: activeDesign });
     triggerDownload(`Monthly_Report_${exportLedger.meta.periodLabel}.pdf`, pdfBytes, 'application/pdf');
   }
 
@@ -1484,9 +1561,61 @@ if (typeof document !== 'undefined') {
     });
   });
 
+  $('btnExportPng').addEventListener('click', () => handleExport('PNG'));
   $('btnExportExcel').addEventListener('click', () => handleExport('EXCEL'));
   $('btnExportCsv').addEventListener('click', () => handleExport('CSV'));
   $('btnExportPdf').addEventListener('click', () => handleExport('PDF'));
+
+  // Design Customizer Controls
+  $('designThemeSelect').value = activeDesign.themeKey || 'NAVY';
+  $('designAccentInput').value = activeDesign.accentColor || '#059669';
+  $('designFontSelect').value = activeDesign.fontStyle || 'SANS';
+  $('designNoteInput').value = activeDesign.customNote || '';
+
+  $('designThemeSelect').addEventListener('change', (e) => {
+    activeDesign.themeKey = e.target.value;
+    const theme = DESIGN_THEMES[activeDesign.themeKey];
+    if (theme) {
+      activeDesign.accentColor = theme.accent;
+      $('designAccentInput').value = theme.accent;
+    }
+    saveDesignState();
+    refreshDesignerPreview();
+  });
+  $('designAccentInput').addEventListener('input', (e) => {
+    activeDesign.accentColor = e.target.value;
+    saveDesignState();
+    refreshDesignerPreview();
+  });
+  $('designFontSelect').addEventListener('change', (e) => {
+    activeDesign.fontStyle = e.target.value;
+    saveDesignState();
+    refreshDesignerPreview();
+  });
+  $('designNoteInput').addEventListener('input', (e) => {
+    activeDesign.customNote = e.target.value;
+    saveDesignState();
+    refreshDesignerPreview();
+  });
+  $('btnResetDesign').addEventListener('click', () => {
+    activeDesign = createDefaultDesignState();
+    $('designThemeSelect').value = activeDesign.themeKey;
+    $('designAccentInput').value = activeDesign.accentColor;
+    $('designFontSelect').value = activeDesign.fontStyle;
+    $('designNoteInput').value = activeDesign.customNote;
+    saveDesignState();
+    refreshDesignerPreview();
+  });
+  ['repTitle', 'repEntity', 'repMonth'].forEach((id) => {
+    $(id).addEventListener('input', () => {
+      if (currentLedger) {
+        currentLedger.meta.reportTitle = sanitizeField($('repTitle').value, 64);
+        currentLedger.meta.accountHolder = sanitizeField($('repEntity').value, 55);
+        currentLedger.meta.periodLabel = sanitizeField($('repMonth').value, 24);
+        refreshDesignerPreview();
+      }
+    });
+  });
   $('btnCloseDrawer').addEventListener('click', closeUnlockDrawer);
   $('unlockDrawer').addEventListener('click', (e) => {
     if (e.target === $('unlockDrawer')) closeUnlockDrawer();

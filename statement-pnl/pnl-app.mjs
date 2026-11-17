@@ -1386,9 +1386,15 @@ if (typeof document !== 'undefined') {
       $('exactOrderRef').textContent = data.order.orderId;
       $('orderPollStatus').textContent = 'Waiting for Wise transfer (24/7 Cloud AutoPay)...';
 
+      let ticks = 0;
       pollTimer = setInterval(async () => {
+        ticks++;
         try {
-          const stQs = new URLSearchParams({ action: 'orderStatus', orderId: activeOrderId });
+          const stQs = new URLSearchParams({
+            action: 'orderStatus',
+            orderId: activeOrderId,
+            ...(ticks % 3 === 0 ? { checkNow: '1' } : {}),
+          });
           const st = await (await fetch(`${CLOUD_AUTOPAY_EXEC_URL}?${stQs.toString()}`)).json();
           if (st.status === 'PAID' && st.licenseKey) {
             clearInterval(pollTimer);
@@ -1396,10 +1402,56 @@ if (typeof document !== 'undefined') {
             await activateManualKey();
           }
         } catch {}
-      }, 4500);
+      }, 4000);
     } catch {
       $('orderPollStatus').textContent = 'Include your email in Wise reference for automatic delivery.';
     }
+  }
+
+  async function verifyWiseTransferNow() {
+    if (!activeOrderId) return;
+    $('orderPollStatus').textContent = 'Checking Wise inbox now...';
+    try {
+      const stQs = new URLSearchParams({ action: 'orderStatus', orderId: activeOrderId, checkNow: '1' });
+      const st = await (await fetch(`${CLOUD_AUTOPAY_EXEC_URL}?${stQs.toString()}`)).json();
+      if (st.status === 'PAID' && st.licenseKey) {
+        if (pollTimer) clearInterval(pollTimer);
+        $('licenseInput').value = st.licenseKey;
+        await activateManualKey();
+      } else {
+        $('orderPollStatus').textContent = 'Not arrived yet — Wise emails usually arrive within 15s.';
+      }
+    } catch {
+      $('orderPollStatus').textContent = 'Check failed — please retry in a few seconds.';
+    }
+  }
+
+  async function redeemPolarCheckoutOnReturn(checkoutId) {
+    const banner = $('polarReturnBanner');
+    const statusEl = $('polarReturnStatus');
+    if (banner && statusEl) {
+      banner.style.display = 'block';
+      statusEl.textContent = 'Verifying your card payment with Polar...';
+    }
+    for (let attempt = 0; attempt < 8; attempt++) {
+      try {
+        const qs = new URLSearchParams({ action: 'redeemPolarCheckout', checkoutId });
+        const data = await (await fetch(`${CLOUD_AUTOPAY_EXEC_URL}?${qs.toString()}`)).json();
+        if (data?.ok && data.status === 'PAID' && data.licenseKey) {
+          if (statusEl) statusEl.textContent = `Payment Confirmed! Key: ${data.licenseKey}`;
+          $('licenseInput').value = data.licenseKey;
+          await activateManualKey();
+          window.history.replaceState({}, '', window.location.pathname);
+          return;
+        }
+        if (data?.status && data.status !== 'PROCESSING') {
+          if (statusEl) statusEl.textContent = `Checkout status: ${data.status}. Complete payment or paste emailed key below.`;
+          return;
+        }
+      } catch {}
+      await new Promise((r) => setTimeout(r, 1600));
+    }
+    if (statusEl) statusEl.textContent = 'Check your email inbox for your automatic License Key receipt.';
   }
 
   let pendingPdfBytes = null;
@@ -1625,6 +1677,7 @@ if (typeof document !== 'undefined') {
   $('railBtnCard').addEventListener('click', () => selectPaymentRail('CARD'));
   $('railBtnWise').addEventListener('click', () => selectPaymentRail('WISE'));
   $('buyerEmailInput').addEventListener('change', startAutoOrder);
+  $('btnVerifyWiseNow').addEventListener('click', verifyWiseTransferNow);
   $('btnActivateKey').addEventListener('click', activateManualKey);
   $('btnCopyWiseEmail').addEventListener('click', () => navigator.clipboard.writeText('jycheah7@gmail.com'));
   $('btnCopyWiseAmt').addEventListener('click', () =>
@@ -1632,6 +1685,11 @@ if (typeof document !== 'undefined') {
   );
 
   const params = new URLSearchParams(window.location.search);
+  const returnedCheckoutId = params.get('checkout_id');
+  if (returnedCheckoutId) {
+    openUnlockDrawer(params.get('checkout') === 'MYBUND' ? 'MYBUND' : 'MYPAYROL');
+    redeemPolarCheckoutOnReturn(returnedCheckoutId);
+  }
   if (params.get('demo') === '1' || params.get('ref') === 'pdf_watermark') {
     loadSampleStatement();
   }

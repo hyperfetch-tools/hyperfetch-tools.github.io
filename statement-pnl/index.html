@@ -403,6 +403,9 @@
         <button type="button" id="btnCloseDrawer" class="btn btn-ghost btn-xs">✕</button>
       </div>
       <div class="drawer-body">
+        <div id="polarReturnBanner" style="display:none;padding:10px 12px;border-radius:8px;margin-bottom:12px;background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;font-size:12.5px;font-weight:700;">
+          <span id="polarReturnStatus">Verifying card payment...</span>
+        </div>
         <div style="margin-bottom:12px;">
           <label class="field-label">1. Choose Lifetime License Tier</label>
           <div class="segmented" style="width:100%;display:grid;grid-template-columns:1fr 1.1fr;">
@@ -435,6 +438,7 @@
             <div class="kv-row"><span class="kv-key">Exact Amount</span><span class="kv-val"><span id="exactPayAmount" data-raw="39.01" style="color:var(--emerald-dark);">MYR 39.01</span> <button type="button" id="btnCopyWiseAmt" class="btn btn-outline btn-xs">Copy</button></span></div>
             <div class="kv-row"><span class="kv-key">Reference</span><span class="kv-val" id="exactOrderRef">ORD-...</span></div>
             <div id="orderPollStatus" class="mono" style="font-size:11.5px;color:var(--emerald-dark);margin-top:8px;"></div>
+            <button type="button" id="btnVerifyWiseNow" class="btn btn-outline" style="width:100%;margin-top:8px;">I've Sent the Transfer — Check Now</button>
           </div>
         </div>
 

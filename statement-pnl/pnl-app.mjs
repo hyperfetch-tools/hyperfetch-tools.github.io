@@ -1020,17 +1020,20 @@ if (typeof document !== 'undefined') {
 
     for (let p = 1; p <= doc.numPages; p++) {
       const page = await doc.getPage(p);
+      const vp = page.getViewport({ scale: 1 });
       const tc = await page.getTextContent();
       const buckets = new Map();
       for (const item of tc.items) {
         const str = String(item.str || '').trim();
         if (!str) continue;
-        const y = Math.round((item.transform?.[5] || 0) / 5) * 5;
-        const x = item.transform?.[4] || 0;
-        if (!buckets.has(y)) buckets.set(y, []);
-        buckets.get(y).push({ x, str });
+        // Apply viewport transform so rotated landscape PDFs (like TNG Wallet /Rotate 90) map to true visual X/Y
+        const tx = pdfjsLib.Util.transform(vp.transform, item.transform);
+        const vy = Math.round(tx[5] / 5) * 5;
+        const vx = tx[4];
+        if (!buckets.has(vy)) buckets.set(vy, []);
+        buckets.get(vy).push({ x: vx, str });
       }
-      const ys = Array.from(buckets.keys()).sort((a, b) => b - a);
+      const ys = Array.from(buckets.keys()).sort((a, b) => a - b);
       for (const y of ys) {
         const rowStr = buckets
           .get(y)

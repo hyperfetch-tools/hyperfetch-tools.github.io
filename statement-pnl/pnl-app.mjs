@@ -203,33 +203,72 @@ export function parseStatementInput(rawText) {
     return { sourceMode: `DELIMITED (${matrix.delimiter === ';' ? 'Semicolon' : matrix.delimiter === '\t' ? 'TSV' : 'CSV'})`, transactions: txns };
   }
 
-  // Fallback: Raw Pasted or Extracted Bank / TNG eWallet PDF Lines
-  const lines = String(rawText || '').replace(/\r\n/g, '\n').split('\n');
+  // Fallback: Raw Pasted or Extracted Bank / TNG eWallet PDF Lines (supports multi-line wrapped PDF table rows!)
+  const rawLines = String(rawText || '')
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  const dateStartRx = /^(\d{1,4}[\/\-]\d{1,2}[\/\-]\d{2,4}|\d{1,2}\s+[A-Za-z]{3}(?:\s+\d{2,4})?)\b/;
+  const footerStopRx = /^(\*?this is a system generated|page \d+ of \d+|for further enquiry|generated date|transaction period)/i;
+
+  // Stitch multi-line wrapped PDF rows (like TNG Wallet History where Reference/Amount wrap across 2-5 lines)
+  const stitchedRecords = [];
+  let currentBuf = '';
+  for (const line of rawLines) {
+    if (footerStopRx.test(line)) {
+      if (currentBuf) {
+        stitchedRecords.push(currentBuf);
+        currentBuf = '';
+      }
+      continue;
+    }
+    if (dateStartRx.test(line)) {
+      if (currentBuf) stitchedRecords.push(currentBuf);
+      currentBuf = line;
+    } else if (currentBuf) {
+      // Only append continuation lines if currentBuf doesn't already have 2 RM/currency amounts, OR if line itself is a wrapped ref/amount
+      currentBuf += ' ' + line;
+    }
+  }
+  if (currentBuf) stitchedRecords.push(currentBuf);
+
   const txns = [];
-  // Matches: <Date> <Description...> <TxnAmount (+/-/DR/CR/RM)> [Optional Running Balance]
-  const lineWithBalRx =
-    /^\s*(\d{1,4}[\/\-]\d{1,2}[\/\-]\d{2,4}|\d{1,2}\s+[A-Za-z]{3}(?:\s+\d{2,4})?)\s+(.+?)\s+([+\-]?(?:RM\s*)?[\d,]+\.\d{2}(?:\s*(?:DR|CR|\+|-))?)(?:\s+([+\-]?(?:RM\s*)?[\d,]+\.\d{2}(?:\s*(?:DR|CR))?))?\s*$/i;
+  const amtTokenRx = /[+\-]?(?:RM\s*)?[\d,]+\.\d{2}(?:\s*(?:DR|CR|\+|-))?/gi;
 
   let prevBalance = null;
-  for (const rawLine of lines) {
+  for (const rec of stitchedRecords) {
     if (txns.length >= MAX_ROWS) break;
-    const m = rawLine.match(lineWithBalRx);
-    if (!m) continue;
-    const dateStr = sanitizeField(m[1], 20);
-    let descStr = sanitizeField(m[2], 140);
+    const dm = rec.match(dateStartRx);
+    if (!dm) continue;
+    const dateStr = sanitizeField(dm[1], 20);
+    const rest = rec.slice(dm[0].length).trim();
+
+    // Find all currency amounts in the stitched record
+    const amtMatches = Array.from(rest.matchAll(amtTokenRx));
+    if (!amtMatches.length) continue;
+
+    // If >=2 amounts (e.g. "RM0.40 RM12.19"), second-to-last is Txn Amount and last is Running Balance
+    const txnMatch = amtMatches.length >= 2 ? amtMatches[amtMatches.length - 2] : amtMatches[0];
+    const balMatch = amtMatches.length >= 2 ? amtMatches[amtMatches.length - 1] : null;
+
+    const amtRaw = txnMatch[0];
+    const balRaw = balMatch ? balMatch[0] : '';
+
+    // Description is everything before the Txn Amount, cleaned of status & long reference numbers
+    let descStr = sanitizeField(rest.slice(0, txnMatch.index), 160);
     if (/^(opening|closing|beginning|ending|brought\s*forward|balance\s*b\/f|balance\s*c\/f)/i.test(descStr)) continue;
     if (/^failed\b/i.test(descStr)) continue;
 
-    // Clean TNG eWallet noise (leading "Success", 12+ digit reference IDs, TNGOW3... codes)
     descStr = descStr
       .replace(/^success\s+/i, '')
       .replace(/\b\d{10,}[A-Z0-9]*\b/g, ' ')
+      .replace(/\b\d{4}\s+\d{4,}\b/g, ' ')
       .replace(/\bTNGOW[A-Z0-9]+\b/gi, ' ')
       .replace(/\s+/g, ' ')
       .trim();
 
-    const amtRaw = m[3];
-    const balRaw = m[4] || '';
     const isCr = /\bCR\b|\+$/i.test(amtRaw) || /^\+/.test(amtRaw);
     const isDr = /\bDR\b|-$/i.test(amtRaw) || /^-/.test(amtRaw);
     const num = Math.abs(parseMoneySigned(amtRaw) || 0);
@@ -242,7 +281,6 @@ export function parseStatementInput(rawText) {
     } else if (isDr) {
       looksIncome = false;
     } else if (curBal !== null && prevBalance !== null) {
-      // Exact balance delta check (works for TNG Wallet Transaction History where amounts have no +/-!)
       if (Math.abs(prevBalance + num - curBal) < 0.02) looksIncome = true;
       else if (Math.abs(prevBalance - num - curBal) < 0.02) looksIncome = false;
       else {

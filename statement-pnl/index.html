@@ -181,11 +181,18 @@
       <div class="hero-top-row">
         <div>
           <h1>1-Second Monthly Expense &amp; Income Auto-Tracker</h1>
-          <p>Built for <strong>students, personal budgets &amp; SMEs</strong>. Drop any Maybank, TNG eWallet, CIMB, or GXBank PDF/CSV — even password-locked PDFs — customize your own category names, and export to <strong>2-Sheet Excel</strong>, CSV, or PDF.</p>
+          <p>Built for <strong>students, personal budgets, freelancers &amp; SMEs</strong>. Drop any Maybank, TNG eWallet, CIMB, or GXBank PDF/CSV — even password-locked PDFs — pick any template, rename categories, and choose what format to export.</p>
         </div>
-        <div class="mode-pills" role="tablist" aria-label="Report Template Mode">
-          <button type="button" id="modeBtnStudent" class="mode-pill-btn active">Personal / Student</button>
-          <button type="button" id="modeBtnSme" class="mode-pill-btn">SME / Business P&amp;L</button>
+        <div style="min-width:250px;flex:0 1 310px;">
+          <label class="field-label" for="templateSelect" style="color:#a7f3d0;">Choose Report Template</label>
+          <select id="templateSelect" class="text-input" style="font-weight:700;">
+            <option value="STUDENT">Personal / Student Expense Tracker</option>
+            <option value="SIMPLE_SAVINGS">50/30/20 Needs, Wants &amp; Savings</option>
+            <option value="FREELANCER">Freelancer &amp; Shopee/TikTok Seller</option>
+            <option value="SME">SME / Business P&amp;L (GL Codes)</option>
+            <option value="LHDN_TAX">LHDN Personal Tax Relief Finder</option>
+            <option value="SHARED_SPLIT">Shared House / Group Trip Split</option>
+          </select>
         </div>
       </div>
     </section>
@@ -302,9 +309,18 @@
           <div style="font-size:11.5px;color:var(--ink-muted);">Shares the same RM 39 MyPayroll / RM 55 Master Bundle key across all 5 tools.</div>
         </div>
         <div class="export-btns">
-          <button type="button" id="btnExportExcel" class="btn btn-emerald">Export to Excel (.xls · 2 Sheets)</button>
+          <select id="exportTemplateSelect" class="text-input" style="width:auto;min-width:220px;font-weight:600;" aria-label="Choose Export Template Layout">
+            <option value="ACTIVE">Export Using Active Template</option>
+            <option value="STUDENT">Export as: Student / Personal Tracker</option>
+            <option value="SIMPLE_SAVINGS">Export as: 50/30/20 Needs/Wants/Savings</option>
+            <option value="FREELANCER">Export as: Freelancer / Seller Cashflow</option>
+            <option value="SME">Export as: SME Business P&amp;L (GL Codes)</option>
+            <option value="LHDN_TAX">Export as: LHDN Tax Relief Summary</option>
+            <option value="SHARED_SPLIT">Export as: Shared House / Trip Split</option>
+          </select>
+          <button type="button" id="btnExportExcel" class="btn btn-emerald">Export Excel (.xls · 2 Sheets)</button>
           <button type="button" id="btnExportCsv" class="btn btn-outline">Export CSV (.csv)</button>
-          <button type="button" id="btnExportPdf" class="btn btn-navy">Download Monthly Report (.pdf)</button>
+          <button type="button" id="btnExportPdf" class="btn btn-navy">Download PDF (.pdf)</button>
         </div>
       </div>
     </section>

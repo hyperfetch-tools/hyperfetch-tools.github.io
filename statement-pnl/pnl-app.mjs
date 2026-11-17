@@ -37,6 +37,36 @@ export const PRESET_PROFILES = {
     { code: '9010', label: 'Transfers & Savings', group: 'TRANSFER', bg: '#f1f5f9', fg: '#475569' },
     { code: '9999', label: 'Uncategorized', group: 'REVIEW', bg: '#fef3c7', fg: '#92400e' },
   ],
+  SIMPLE_SAVINGS: [
+    { code: '4010', label: 'Income / Salary', group: 'INCOME', bg: '#d1fae5', fg: '#065f46' },
+    { code: '4020', label: 'Side Income / Cashback', group: 'INCOME', bg: '#dcfce7', fg: '#166534' },
+    { code: '6110', label: 'Needs: Utilities & Rent', group: 'EXPENSE', bg: '#dbeafe', fg: '#1e40af' },
+    { code: '6120', label: 'Needs: Telco & Bills', group: 'EXPENSE', bg: '#dbeafe', fg: '#1e40af' },
+    { code: '6210', label: 'Needs: Transport & Petrol', group: 'EXPENSE', bg: '#dbeafe', fg: '#1e40af' },
+    { code: '6310', label: 'Needs: Groceries & Daily Food', group: 'EXPENSE', bg: '#ffedd5', fg: '#9a3412' },
+    { code: '5010', label: 'Wants: Shopping & Lifestyle', group: 'EXPENSE', bg: '#f3e8ff', fg: '#6b21a8' },
+    { code: '6410', label: 'Wants: Fun & Subscriptions', group: 'EXPENSE', bg: '#ccfbf1', fg: '#115e59' },
+    { code: '7010', label: 'Wants: Travel & Dining Out', group: 'EXPENSE', bg: '#e0e7ff', fg: '#3730a3' },
+    { code: '8010', label: 'Needs: Health & Protection', group: 'EXPENSE', bg: '#fce7f3', fg: '#9d174d' },
+    { code: '6510', label: 'Bank Fees', group: 'EXPENSE', bg: '#fee2e2', fg: '#991b1b' },
+    { code: '9010', label: 'Savings / ASB / Investments', group: 'TRANSFER', bg: '#d1fae5', fg: '#065f46' },
+    { code: '9999', label: 'Needs Review', group: 'REVIEW', bg: '#fef3c7', fg: '#92400e' },
+  ],
+  FREELANCER: [
+    { code: '4010', label: 'Client / Shopee / Platform Payouts', group: 'INCOME', bg: '#d1fae5', fg: '#065f46' },
+    { code: '4020', label: 'Refunds / Cashback', group: 'INCOME', bg: '#dcfce7', fg: '#166534' },
+    { code: '5010', label: 'Inventory, Stock & Packaging', group: 'EXPENSE', bg: '#f3e8ff', fg: '#6b21a8' },
+    { code: '6210', label: 'Courier, Grab & Petrol', group: 'EXPENSE', bg: '#dbeafe', fg: '#1e40af' },
+    { code: '6410', label: 'SaaS, AI Tools & Ads', group: 'EXPENSE', bg: '#ccfbf1', fg: '#115e59' },
+    { code: '6120', label: 'Internet & Phone', group: 'EXPENSE', bg: '#e2e8f0', fg: '#334155' },
+    { code: '6110', label: 'Workspace Utilities', group: 'EXPENSE', bg: '#f1f5f9', fg: '#334155' },
+    { code: '7010', label: 'Studio / Coworking Rent', group: 'EXPENSE', bg: '#e0e7ff', fg: '#3730a3' },
+    { code: '6310', label: 'Client Meals & Coffee', group: 'EXPENSE', bg: '#ffedd5', fg: '#9a3412' },
+    { code: '6510', label: 'Payment / Bank Fees', group: 'EXPENSE', bg: '#fee2e2', fg: '#991b1b' },
+    { code: '8010', label: 'Tax / KWSP Set-Aside', group: 'EXPENSE', bg: '#fce7f3', fg: '#9d174d' },
+    { code: '9010', label: 'Owner Draw / Transfer', group: 'TRANSFER', bg: '#f1f5f9', fg: '#475569' },
+    { code: '9999', label: 'Uncategorized', group: 'REVIEW', bg: '#fef3c7', fg: '#92400e' },
+  ],
   SME: [
     { code: '4010', label: 'Sales / Revenue / Salary', group: 'INCOME', bg: '#d1fae5', fg: '#065f46' },
     { code: '4020', label: 'Interest / Hibah / Cashback', group: 'INCOME', bg: '#dcfce7', fg: '#166534' },
@@ -51,6 +81,36 @@ export const PRESET_PROFILES = {
     { code: '8010', label: 'LHDN Tax Relief / Statutory', group: 'EXPENSE', bg: '#fce7f3', fg: '#9d174d' },
     { code: '9010', label: 'Internal Transfer / Savings', group: 'TRANSFER', bg: '#f1f5f9', fg: '#475569' },
     { code: '9999', label: 'Uncategorized', group: 'REVIEW', bg: '#fef3c7', fg: '#92400e' },
+  ],
+  LHDN_TAX: [
+    { code: '4010', label: 'Taxable Salary / Income', group: 'INCOME', bg: '#d1fae5', fg: '#065f46' },
+    { code: '4020', label: 'Tax-Exempt Hibah / Cashback', group: 'INCOME', bg: '#dcfce7', fg: '#166534' },
+    { code: '8010', label: 'LHDN Relief: Medical, Insurance, Zakat', group: 'EXPENSE', bg: '#fce7f3', fg: '#9d174d' },
+    { code: '6120', label: 'LHDN Relief: Lifestyle (Internet/Tech)', group: 'EXPENSE', bg: '#dbeafe', fg: '#1e40af' },
+    { code: '5010', label: 'LHDN Relief: Books & Education', group: 'EXPENSE', bg: '#f3e8ff', fg: '#6b21a8' },
+    { code: '6110', label: 'Non-Relief: Utilities', group: 'EXPENSE', bg: '#f1f5f9', fg: '#334155' },
+    { code: '6210', label: 'Non-Relief: Transport & Tolls', group: 'EXPENSE', bg: '#e2e8f0', fg: '#334155' },
+    { code: '6310', label: 'Non-Relief: F&B & Groceries', group: 'EXPENSE', bg: '#ffedd5', fg: '#9a3412' },
+    { code: '6410', label: 'Non-Relief: Digital & Subs', group: 'EXPENSE', bg: '#ccfbf1', fg: '#115e59' },
+    { code: '7010', label: 'Non-Relief: Rent & Travel', group: 'EXPENSE', bg: '#e0e7ff', fg: '#3730a3' },
+    { code: '6510', label: 'Bank Fees', group: 'EXPENSE', bg: '#fee2e2', fg: '#991b1b' },
+    { code: '9010', label: 'Transfers & Savings', group: 'TRANSFER', bg: '#f1f5f9', fg: '#475569' },
+    { code: '9999', label: 'Review for Tax Relief', group: 'REVIEW', bg: '#fef3c7', fg: '#92400e' },
+  ],
+  SHARED_SPLIT: [
+    { code: '4010', label: 'Reimbursements / Split Received', group: 'INCOME', bg: '#d1fae5', fg: '#065f46' },
+    { code: '4020', label: 'Cashback', group: 'INCOME', bg: '#dcfce7', fg: '#166534' },
+    { code: '6310', label: 'Shared Food & Groceries', group: 'EXPENSE', bg: '#ffedd5', fg: '#9a3412' },
+    { code: '7010', label: 'Shared Rent / Hotel / Trip', group: 'EXPENSE', bg: '#e0e7ff', fg: '#3730a3' },
+    { code: '6110', label: 'Shared Utilities & WiFi', group: 'EXPENSE', bg: '#dbeafe', fg: '#1e40af' },
+    { code: '6120', label: 'Shared Bills', group: 'EXPENSE', bg: '#e2e8f0', fg: '#334155' },
+    { code: '6210', label: 'Shared Grab, Petrol & Tolls', group: 'EXPENSE', bg: '#dbeafe', fg: '#1e40af' },
+    { code: '5010', label: 'Personal Shopping (Exclude)', group: 'EXPENSE', bg: '#f3e8ff', fg: '#6b21a8' },
+    { code: '6410', label: 'Personal Subs (Exclude)', group: 'EXPENSE', bg: '#ccfbf1', fg: '#115e59' },
+    { code: '8010', label: 'Personal Care (Exclude)', group: 'EXPENSE', bg: '#fce7f3', fg: '#9d174d' },
+    { code: '6510', label: 'Bank Charges', group: 'EXPENSE', bg: '#fee2e2', fg: '#991b1b' },
+    { code: '9010', label: 'Internal Transfer', group: 'TRANSFER', bg: '#f1f5f9', fg: '#475569' },
+    { code: '9999', label: 'Tag Shared vs Personal', group: 'REVIEW', bg: '#fef3c7', fg: '#92400e' },
   ],
 };
 
@@ -732,7 +792,8 @@ export function generateMonthlyPnlPdfBytes(ledger, { watermark = true } = {}) {
 if (typeof document !== 'undefined') {
   let currentLedger = null;
   let activeFilter = 'ALL';
-  let activeProfile = localStorage.getItem(PROFILE_STORAGE_KEY) === 'SME' ? 'SME' : 'STUDENT';
+  const storedProfile = localStorage.getItem(PROFILE_STORAGE_KEY);
+  let activeProfile = PRESET_PROFILES[storedProfile] ? storedProfile : 'STUDENT';
   let activeCheckoutProduct = 'MYPAYROL';
   let activePaymentRail = 'CARD';
   let activeOrderId = null;
@@ -758,17 +819,25 @@ if (typeof document !== 'undefined') {
     localStorage.setItem(CATS_STORAGE_KEY, JSON.stringify(activeCategories));
   }
 
+  const TEMPLATE_TITLES = {
+    STUDENT: 'Monthly Student / Personal Expense Tracker',
+    SIMPLE_SAVINGS: '50/30/20 Budget & Savings Report',
+    FREELANCER: 'Freelancer & Online Seller Cashflow Report',
+    SME: 'Monthly SME Profit & Loss (P&L) Statement',
+    LHDN_TAX: 'LHDN Personal Tax Relief & Spending Summary',
+    SHARED_SPLIT: 'Shared House / Trip Expense Split Report',
+  };
+
   function switchProfileMode(mode) {
-    activeProfile = mode === 'SME' ? 'SME' : 'STUDENT';
+    activeProfile = PRESET_PROFILES[mode] ? mode : 'STUDENT';
     localStorage.setItem(PROFILE_STORAGE_KEY, activeProfile);
     activeCategories = PRESET_PROFILES[activeProfile].map((c) => ({ ...c }));
     saveCategories();
-    $('modeBtnStudent').classList.toggle('active', activeProfile === 'STUDENT');
-    $('modeBtnSme').classList.toggle('active', activeProfile === 'SME');
-    if (activeProfile === 'STUDENT' && $('repTitle').value === 'Monthly Spending & Earning P&L Report') {
-      $('repTitle').value = 'Monthly Expense & Income Tracker';
-    } else if (activeProfile === 'SME' && $('repTitle').value === 'Monthly Expense & Income Tracker') {
-      $('repTitle').value = 'Monthly Spending & Earning P&L Report';
+    const sel = $('templateSelect');
+    if (sel) sel.value = activeProfile;
+    const titleEl = $('repTitle');
+    if (titleEl && (Object.values(TEMPLATE_TITLES).includes(titleEl.value) || !titleEl.value.trim())) {
+      titleEl.value = TEMPLATE_TITLES[activeProfile];
     }
     renderCategoryManager();
     if ($('rawStatementBox').value.trim()) runCompile();
@@ -1080,33 +1149,48 @@ if (typeof document !== 'undefined') {
     let proOk = false;
     if (isUnlocked) proOk = await verifyStoredProKeyLive();
 
+    // Allow user to export using a different template layout/category mapping on the fly!
+    const exportTpl = $('exportTemplateSelect')?.value || 'ACTIVE';
+    let exportLedger = currentLedger;
+    if (exportTpl !== 'ACTIVE' && PRESET_PROFILES[exportTpl]) {
+      const tplCats = PRESET_PROFILES[exportTpl];
+      const tplMap = new Map(tplCats.map((c) => [c.code, c]));
+      const remappedRows = currentLedger.rows.map((r) => {
+        const m = tplMap.get(r.code) || tplCats[tplCats.length - 1];
+        return { ...r, categoryLabel: m.label, group: m.group, bg: m.bg, fg: m.fg };
+      });
+      exportLedger = summarizeLedgerRows(remappedRows, currentLedger.meta.sourceMode, {
+        ...currentLedger.meta,
+        reportTitle: TEMPLATE_TITLES[exportTpl] || currentLedger.meta.reportTitle,
+      });
+    }
+
     if (kind === 'EXCEL') {
-      if (!proOk && currentLedger.rows.length > FREE_ROW_LIMIT) {
-        const xls = buildExcelSpreadsheetXml(currentLedger, FREE_ROW_LIMIT);
-        triggerDownload(`FREE25_Expense_Report_${currentLedger.meta.periodLabel}.xls`, xls, 'application/vnd.ms-excel;charset=utf-8');
+      if (!proOk && exportLedger.rows.length > FREE_ROW_LIMIT) {
+        const xls = buildExcelSpreadsheetXml(exportLedger, FREE_ROW_LIMIT);
+        triggerDownload(`FREE25_Report_${exportLedger.meta.periodLabel}.xls`, xls, 'application/vnd.ms-excel;charset=utf-8');
         openUnlockDrawer('MYPAYROL');
         return;
       }
-      const xls = buildExcelSpreadsheetXml(currentLedger, null);
-      triggerDownload(`Expense_Report_${currentLedger.meta.periodLabel}.xls`, xls, 'application/vnd.ms-excel;charset=utf-8');
+      const xls = buildExcelSpreadsheetXml(exportLedger, null);
+      triggerDownload(`Report_${exportLedger.meta.periodLabel}.xls`, xls, 'application/vnd.ms-excel;charset=utf-8');
       return;
     }
 
     if (kind === 'CSV') {
-      if (!proOk && currentLedger.rows.length > FREE_ROW_LIMIT) {
-        // Export free 25-row sample or open drawer
-        const csv = buildCategorizedCsv(currentLedger, FREE_ROW_LIMIT);
-        triggerDownload(`FREE25_Statement_${currentLedger.meta.periodLabel}.csv`, csv, 'text/csv;charset=utf-8');
+      if (!proOk && exportLedger.rows.length > FREE_ROW_LIMIT) {
+        const csv = buildCategorizedCsv(exportLedger, FREE_ROW_LIMIT);
+        triggerDownload(`FREE25_Statement_${exportLedger.meta.periodLabel}.csv`, csv, 'text/csv;charset=utf-8');
         openUnlockDrawer('MYPAYROL');
         return;
       }
-      const csv = buildCategorizedCsv(currentLedger, null);
-      triggerDownload(`Statement_PnL_${currentLedger.meta.periodLabel}.csv`, csv, 'text/csv;charset=utf-8');
+      const csv = buildCategorizedCsv(exportLedger, null);
+      triggerDownload(`Statement_${exportLedger.meta.periodLabel}.csv`, csv, 'text/csv;charset=utf-8');
       return;
     }
 
-    const pdfBytes = generateMonthlyPnlPdfBytes(currentLedger, { watermark: !proOk });
-    triggerDownload(`Monthly_PnL_${currentLedger.meta.periodLabel}.pdf`, pdfBytes, 'application/pdf');
+    const pdfBytes = generateMonthlyPnlPdfBytes(exportLedger, { watermark: !proOk });
+    triggerDownload(`Monthly_Report_${exportLedger.meta.periodLabel}.pdf`, pdfBytes, 'application/pdf');
   }
 
   function triggerDownload(filename, content, mime) {
@@ -1330,12 +1414,10 @@ if (typeof document !== 'undefined') {
   }
 
   refreshUnlockUi();
-  $('modeBtnStudent').classList.toggle('active', activeProfile === 'STUDENT');
-  $('modeBtnSme').classList.toggle('active', activeProfile === 'SME');
+  $('templateSelect').value = activeProfile;
   renderCategoryManager();
 
-  $('modeBtnStudent').addEventListener('click', () => switchProfileMode('STUDENT'));
-  $('modeBtnSme').addEventListener('click', () => switchProfileMode('SME'));
+  $('templateSelect').addEventListener('change', (e) => switchProfileMode(e.target.value));
   $('btnToggleCatEditor').addEventListener('click', () => $('catManagerDrawer').classList.toggle('open'));
   $('btnAddCustomCat').addEventListener('click', () => {
     const label = sanitizeField($('newCatNameInput').value, 40);

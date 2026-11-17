@@ -1,13 +1,12 @@
 <!DOCTYPE html>
-<html lang="en-MY">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="referrer" content="no-referrer" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://*.googleusercontent.com; object-src 'none'; base-uri 'self'; form-action 'self' https://buy.polar.sh https://polar.sh;" />
+<html lang="en-MY"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://*.googleusercontent.com; object-src 'none'; base-uri 'self'; form-action 'self' https://buy.polar.sh https://polar.sh;">
   <title>Malaysian Bank Statement Auto-Categorizer &amp; Monthly P&amp;L Generator | Hyperfetch Tools</title>
-  <meta name="description" content="Stop spending hours typing Excel codes. Drop Maybank, CIMB, Public Bank, GXBank, TNG eWallet CSVs or pasted PDF text to auto-tag GL codes, save merchant rules, and export clean Excel/CSV + Monthly P&L PDF on phone or desktop." />
-  <link rel="canonical" href="https://hyperfetch-tools.github.io/statement-pnl/" />
+  <meta name="description" content="Stop spending hours typing Excel codes. Drop Maybank, CIMB, Public Bank, GXBank, TNG eWallet CSVs or pasted PDF text to auto-tag GL codes, save merchant rules, and export clean Excel/CSV + Monthly P&amp;L PDF on phone or desktop.">
+  <link rel="canonical" href="https://hyperfetch-tools.github.io/statement-pnl/">
   <style>
     :root {
       --bg: #f8fafc;
@@ -41,7 +40,7 @@
     .license-pill {
       display: inline-flex; align-items: center; padding: 7px 12px; border-radius: 999px;
       font-size: 12px; font-weight: 700; background: rgba(255,255,255,0.14); color: #fff;
-      border: 1px solid rgba(255,255,225,0.22); cursor: pointer; min-height: 36px;
+      border: 1px solid rgba(255,255,255,0.22); cursor: pointer; min-height: 36px;
     }
     .license-pill.unlocked { background: var(--emerald); border-color: var(--emerald); }
 
@@ -83,6 +82,16 @@
 
     .raw-editor-drawer { display: none; margin-top: 12px; }
     .raw-editor-drawer.open { display: block; }
+    .cat-manager-drawer { display: none; padding: 12px 14px; background: #f8fafc; border-top: 1px solid var(--border); }
+    .cat-manager-drawer.open { display: block; }
+    .cat-manager-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .cat-edit-chip { display: inline-flex; align-items: center; gap: 6px; background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 4px 8px; }
+    .cat-dot { width: 12px; height: 12px; border-radius: 999px; border: 1px solid; flex-shrink: 0; }
+    .cat-rename-input { border: 0; font-size: 12.5px; font-weight: 600; color: var(--ink); width: 145px; background: transparent; outline: none; }
+    .hero-top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
+    .mode-pills { display: inline-flex; background: rgba(255,255,255,0.14); padding: 4px; border-radius: 9px; border: 1px solid rgba(255,255,255,0.2); }
+    .mode-pill-btn { border: 0; background: transparent; color: #cbd5e1; padding: 7px 12px; border-radius: 6px; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+    .mode-pill-btn.active { background: #fff; color: var(--navy); }
     textarea { width: 100%; border: 1px solid var(--border-strong); border-radius: 8px; padding: 10px; font-family: var(--font-mono); font-size: 12.5px; }
 
     /* KPI Ribbon: 4 cols desktop, 2x2 on phone */
@@ -169,27 +178,48 @@
 
   <main class="workspace">
     <section class="hero-box">
-      <h1>1-Second Bank Statement Auto-Coder &amp; Monthly P&amp;L Report</h1>
-      <p>Stop spending 3 hours typing codes in Excel. Drop any Maybank, CIMB, Public Bank, GXBank, or TNG eWallet CSV — or paste copied PDF statement lines right from your phone. Auto-tags 100+ Malaysian merchants, remembers your custom codes forever, and exports clean Excel CSV + 1-page P&amp;L PDF.</p>
+      <div class="hero-top-row">
+        <div>
+          <h1>1-Second Monthly Expense &amp; Income Auto-Tracker</h1>
+          <p>Built for <strong>students, personal budgets &amp; SMEs</strong>. Drop any Maybank, TNG eWallet, CIMB, or GXBank PDF/CSV — even password-locked PDFs — customize your own category names, and export to <strong>2-Sheet Excel</strong>, CSV, or PDF.</p>
+        </div>
+        <div class="mode-pills" role="tablist" aria-label="Report Template Mode">
+          <button type="button" id="modeBtnStudent" class="mode-pill-btn active">Personal / Student</button>
+          <button type="button" id="modeBtnSme" class="mode-pill-btn">SME / Business P&amp;L</button>
+        </div>
+      </div>
     </section>
 
     <section class="ledger-frame" aria-label="Report Details">
       <div class="frame-bar">
-        <div class="frame-step"><span class="step-badge">STEP 01</span><span>Report Header</span></div>
-        <span class="mono" style="font-size:11px;color:var(--emerald-dark);font-weight:600;">100% Private Browser RAM</span>
+        <div class="frame-step"><span class="step-badge">STEP 01</span><span>Report Header &amp; Custom Categories</span></div>
+        <button type="button" id="btnToggleCatEditor" class="btn btn-outline btn-xs">Customize / Rename Categories</button>
       </div>
       <div class="profile-grid">
         <div>
           <label class="field-label" for="repTitle">Report Title</label>
-          <input id="repTitle" class="text-input" value="Monthly Spending & Earning P&L Report" />
+          <input id="repTitle" class="text-input" value="Monthly Expense &amp; Income Tracker">
         </div>
         <div>
-          <label class="field-label" for="repEntity">Name / Company</label>
-          <input id="repEntity" class="text-input" value="PERSONAL / SME ACCOUNT" />
+          <label class="field-label" for="repEntity">Name / Account</label>
+          <input id="repEntity" class="text-input" value="PERSONAL / STUDENT WALLET">
         </div>
         <div>
           <label class="field-label" for="repMonth">Statement Month</label>
-          <input id="repMonth" type="month" class="text-input mono" value="2026-10" />
+          <input id="repMonth" type="month" class="text-input mono" value="2026-11">
+        </div>
+      </div>
+      <div id="catManagerDrawer" class="cat-manager-drawer">
+        <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px;">Rename any category directly (supports English, 中文, Bahasa, Emoji) or add your own:</div>
+        <div id="catManagerGrid" class="cat-manager-grid"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <input id="newCatNameInput" class="text-input" style="max-width:220px;" placeholder="New category (e.g. 餐饮与零食)">
+          <select id="newCatGroupSelect" class="text-input" style="max-width:140px;">
+            <option value="EXPENSE">Spending (-)</option>
+            <option value="INCOME">Income (+)</option>
+          </select>
+          <button type="button" id="btnAddCustomCat" class="btn btn-emerald btn-xs">+ Add Category</button>
+          <button type="button" id="btnResetCats" class="btn btn-ghost btn-xs">Reset Preset</button>
         </div>
       </div>
     </section>
@@ -200,7 +230,7 @@
         <button type="button" id="btnToggleRaw" class="btn btn-ghost btn-xs">Paste Text / Edit</button>
       </div>
       <div class="intake-body">
-        <input type="file" id="csvFileInput" accept=".pdf,.csv,.tsv,.txt,application/pdf,text/csv" hidden />
+        <input type="file" id="csvFileInput" accept=".pdf,.csv,.tsv,.txt,application/pdf,text/csv" hidden="">
         <div id="dropSurface" class="drop-surface">
           <p class="drop-title" id="loadedFileLabel">Tap to pick a Maybank / TNG PDF or Bank CSV</p>
           <p class="drop-hint">Supports password-protected Maybank/CIMB/TNG <code>.pdf</code> statements (unlocked locally in RAM) + CSV/TSV + copied PDF text.</p>
@@ -213,7 +243,7 @@
           <div style="font-weight:700;color:#92400e;margin-bottom:4px;">Locked Bank PDF Detected — Unlock Locally in Browser RAM</div>
           <div id="pdfPasswordMsg" style="font-size:12.5px;color:#78350f;margin-bottom:10px;">Your password &amp; PDF never leave your device.</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <input id="pdfPasswordInput" type="password" class="text-input mono" style="flex:1;min-width:180px;" placeholder="Enter PDF password (e.g. DDMMYYYY or NRIC)" />
+            <input id="pdfPasswordInput" type="password" class="text-input mono" style="flex:1;min-width:180px;" placeholder="Enter PDF password (e.g. DDMMYYYY or NRIC)">
             <button type="button" id="btnUnlockPdf" class="btn btn-navy">Unlock PDF</button>
           </div>
           <div style="font-size:11.5px;color:#92400e;margin-top:8px;">
@@ -272,8 +302,9 @@
           <div style="font-size:11.5px;color:var(--ink-muted);">Shares the same RM 39 MyPayroll / RM 55 Master Bundle key across all 5 tools.</div>
         </div>
         <div class="export-btns">
-          <button type="button" id="btnExportCsv" class="btn btn-outline">Export Categorized Excel (.csv)</button>
-          <button type="button" id="btnExportPdf" class="btn btn-emerald">Download Monthly P&amp;L (.pdf)</button>
+          <button type="button" id="btnExportExcel" class="btn btn-emerald">Export to Excel (.xls · 2 Sheets)</button>
+          <button type="button" id="btnExportCsv" class="btn btn-outline">Export CSV (.csv)</button>
+          <button type="button" id="btnExportPdf" class="btn btn-navy">Download Monthly Report (.pdf)</button>
         </div>
       </div>
     </section>
@@ -316,7 +347,7 @@
         <div id="wisePaySection" style="display:none;">
           <div class="price-summary-card">
             <label class="field-label" for="buyerEmailInput">Receipt Email (Auto-delivers your key)</label>
-            <input id="buyerEmailInput" type="email" class="text-input" placeholder="you@email.com" style="margin-bottom:10px;" />
+            <input id="buyerEmailInput" type="email" class="text-input" placeholder="you@email.com" style="margin-bottom:10px;">
             <div class="kv-row"><span class="kv-key">Wise Email</span><span class="kv-val">jycheah7@gmail.com <button type="button" id="btnCopyWiseEmail" class="btn btn-outline btn-xs">Copy</button></span></div>
             <div class="kv-row"><span class="kv-key">Exact Amount</span><span class="kv-val"><span id="exactPayAmount" data-raw="39.01" style="color:var(--emerald-dark);">MYR 39.01</span> <button type="button" id="btnCopyWiseAmt" class="btn btn-outline btn-xs">Copy</button></span></div>
             <div class="kv-row"><span class="kv-key">Reference</span><span class="kv-val" id="exactOrderRef">ORD-...</span></div>
@@ -324,10 +355,10 @@
           </div>
         </div>
 
-        <hr style="border:0;border-top:1px solid var(--border);margin:16px 0;" />
+        <hr style="border:0;border-top:1px solid var(--border);margin:16px 0;">
         <label class="field-label" for="licenseInput">Already have a MYPAYR or MYBUND Key?</label>
         <div style="display:flex;gap:8px;">
-          <input id="licenseInput" class="text-input mono" placeholder="ZYK-MYPAYR-XXXXXXXX-XXXXXXXXXX" />
+          <input id="licenseInput" class="text-input mono" placeholder="ZYK-MYPAYR-XXXXXXXX-XXXXXXXXXX">
           <button type="button" id="btnActivateKey" class="btn btn-navy">Activate</button>
         </div>
         <div id="keyMsg" class="mono" style="font-size:12px;margin-top:8px;color:var(--emerald-dark);"></div>
@@ -336,5 +367,6 @@
   </div>
 
   <script type="module" src="./pnl-app.mjs"></script>
-</body>
-</html>
+
+
+</body></html>

@@ -18,43 +18,63 @@ const MAX_INPUT_BYTES = 10 * 1024 * 1024;
 const MAX_ROWS = 5000;
 const FREE_ROW_LIMIT = 25;
 const RULES_STORAGE_KEY = 'zyk_statement_custom_rules_v1';
+const CATS_STORAGE_KEY = 'zyk_statement_custom_cats_v1';
+const PROFILE_STORAGE_KEY = 'zyk_statement_profile_mode_v1';
 
-export const DEFAULT_CODES = [
-  { code: '4010', label: 'Sales / Revenue / Salary', group: 'INCOME' },
-  { code: '4020', label: 'Interest / Hibah / Cashback', group: 'INCOME' },
-  { code: '5010', label: 'COGS / Inventory / Courier', group: 'EXPENSE' },
-  { code: '6110', label: 'Utilities (TNB / Water / IWK)', group: 'EXPENSE' },
-  { code: '6120', label: 'Telco & Internet', group: 'EXPENSE' },
-  { code: '6210', label: 'Petrol, Tolls & Transport', group: 'EXPENSE' },
-  { code: '6310', label: 'F&B, Groceries & Dining', group: 'EXPENSE' },
-  { code: '6410', label: 'Software, SaaS & Ads', group: 'EXPENSE' },
-  { code: '6510', label: 'Bank Charges / SST / Fees', group: 'EXPENSE' },
-  { code: '7010', label: 'Rent & Office / Maintenance', group: 'EXPENSE' },
-  { code: '8010', label: 'LHDN Tax Relief / Statutory', group: 'EXPENSE' },
-  { code: '9010', label: 'Internal Transfer / Savings', group: 'TRANSFER' },
-  { code: '9999', label: 'Uncategorized', group: 'REVIEW' },
-];
+export const PRESET_PROFILES = {
+  STUDENT: [
+    { code: '4010', label: 'Allowance / Income', group: 'INCOME', bg: '#d1fae5', fg: '#065f46' },
+    { code: '4020', label: 'Cashback / Hibah', group: 'INCOME', bg: '#dcfce7', fg: '#166534' },
+    { code: '6310', label: 'Food & Snacks', group: 'EXPENSE', bg: '#ffedd5', fg: '#9a3412' },
+    { code: '6210', label: 'Transport & Study', group: 'EXPENSE', bg: '#dbeafe', fg: '#1e40af' },
+    { code: '5010', label: 'Shopping & Gifts', group: 'EXPENSE', bg: '#f3e8ff', fg: '#6b21a8' },
+    { code: '8010', label: 'Beauty & Health Care', group: 'EXPENSE', bg: '#fce7f3', fg: '#9d174d' },
+    { code: '6410', label: 'Entertainment & Subs', group: 'EXPENSE', bg: '#ccfbf1', fg: '#115e59' },
+    { code: '6120', label: 'Bills, Telco & Top-Up', group: 'EXPENSE', bg: '#e2e8f0', fg: '#334155' },
+    { code: '6110', label: 'Utilities / Room', group: 'EXPENSE', bg: '#f1f5f9', fg: '#334155' },
+    { code: '7010', label: 'Travel & Outings', group: 'EXPENSE', bg: '#e0e7ff', fg: '#3730a3' },
+    { code: '6510', label: 'Fees & Charges', group: 'EXPENSE', bg: '#fee2e2', fg: '#991b1b' },
+    { code: '9010', label: 'Transfers & Savings', group: 'TRANSFER', bg: '#f1f5f9', fg: '#475569' },
+    { code: '9999', label: 'Uncategorized', group: 'REVIEW', bg: '#fef3c7', fg: '#92400e' },
+  ],
+  SME: [
+    { code: '4010', label: 'Sales / Revenue / Salary', group: 'INCOME', bg: '#d1fae5', fg: '#065f46' },
+    { code: '4020', label: 'Interest / Hibah / Cashback', group: 'INCOME', bg: '#dcfce7', fg: '#166534' },
+    { code: '5010', label: 'COGS / Inventory / Courier', group: 'EXPENSE', bg: '#f3e8ff', fg: '#6b21a8' },
+    { code: '6110', label: 'Utilities (TNB / Water / IWK)', group: 'EXPENSE', bg: '#e2e8f0', fg: '#334155' },
+    { code: '6120', label: 'Telco & Internet', group: 'EXPENSE', bg: '#dbeafe', fg: '#1e40af' },
+    { code: '6210', label: 'Petrol, Tolls & Transport', group: 'EXPENSE', bg: '#e0e7ff', fg: '#3730a3' },
+    { code: '6310', label: 'F&B, Groceries & Dining', group: 'EXPENSE', bg: '#ffedd5', fg: '#9a3412' },
+    { code: '6410', label: 'Software, SaaS & Ads', group: 'EXPENSE', bg: '#ccfbf1', fg: '#115e59' },
+    { code: '6510', label: 'Bank Charges / SST / Fees', group: 'EXPENSE', bg: '#fee2e2', fg: '#991b1b' },
+    { code: '7010', label: 'Rent & Office / Maintenance', group: 'EXPENSE', bg: '#f1f5f9', fg: '#334155' },
+    { code: '8010', label: 'LHDN Tax Relief / Statutory', group: 'EXPENSE', bg: '#fce7f3', fg: '#9d174d' },
+    { code: '9010', label: 'Internal Transfer / Savings', group: 'TRANSFER', bg: '#f1f5f9', fg: '#475569' },
+    { code: '9999', label: 'Uncategorized', group: 'REVIEW', bg: '#fef3c7', fg: '#92400e' },
+  ],
+};
+
+export const DEFAULT_CODES = PRESET_PROFILES.STUDENT;
 
 export const BUILTIN_MY_RULES = [
-  { rx: /\b(shopee\s*payout|lazada\s*payout|tiktok\s*shop|stripe|polar\.sh|wise\s*transfer|salary|gaji|payroll|client\s*payment|inv[\-\s]?\d+|sales\s*deposit)\b/i, code: '4010' },
-  { rx: /\b(hibah|dividend|interest\s*credited|cashback|profit\s*credited)\b/i, code: '4020' },
-  { rx: /\b(1688|taobao|alibaba|pos\s*laju|poslaju|j&t|ninjavan|ninja\s*van|dhl|lalamove|gdex|packaging|wholesale|supplier)\b/i, code: '5010' },
+  { rx: /\b(shopee\s*payout|lazada\s*payout|tiktok\s*shop|stripe|polar\.sh|wise\s*transfer|salary|gaji|payroll|client\s*payment|inv[\-\s]?\d+|sales\s*deposit|allowance)\b/i, code: '4010' },
+  { rx: /\b(hibah|dividend|interest\s*credited|cashback|profit\s*credited|go\+\s*return)\b/i, code: '4020' },
+  { rx: /\b(1688|taobao|alibaba|pos\s*laju|poslaju|j&t|ninjavan|ninja\s*van|dhl|lalamove|gdex|packaging|wholesale|supplier|lazada|shopee|mr\s*diy|daiso|popular|mph)\b/i, code: '5010' },
   { rx: /\b(tnb|tenaga\s*nasional|air\s*selangor|syabas|saj|indah\s*water|iwk|gas\s*malaysia|sesb|sarawak\s*energy)\b/i, code: '6110' },
-  { rx: /\b(unifi|tm\s*tech|telekom|time\s*dotcom|maxis|celcom|digi|celcomdigi|u\s*mobile|umobile|yes\s*4g|yes\s*5g)\b/i, code: '6120' },
+  { rx: /\b(unifi|tm\s*tech|telekom|time\s*dotcom|maxis|celcom|digi|celcomdigi|u\s*mobile|umobile|yes\s*4g|yes\s*5g|card\s*reload)\b/i, code: '6120' },
   { rx: /\b(petronas|shell|petron|bhp|caltex|touch\s*n\s*go|tng\s*rfid|plus\s*express|duke|akleh|grab|maxim|rapidkl|mrt|ktmb|parking)\b/i, code: '6210' },
-  { rx: /\b(jaya\s*grocer|village\s*grocer|mydin|99\s*speedmart|speedmart|kk\s*mart|lotus|aeon|mamak|kopi|zus|starbucks|mcdonald|kfc|foodpanda|shopeefood|grabfood|restaurant|restoran|cafe|bistro|lazada|shopee)\b/i, code: '6310' },
+  { rx: /\b(jaya\s*grocer|village\s*grocer|mydin|99\s*speedmart|speedmart|kk\s*mart|7[\-\s]*eleven|lotus|aeon|mamak|kopi|zus|starbucks|mcdonald|kfc|foodpanda|shopeefood|grabfood|restaurant|restoran|cafe|bistro|mixue|chicha|chagee|familymart)\b/i, code: '6310' },
   { rx: /\b(receive\s*from\s*wallet|fund\s*transfer|transfer\s*to\s*wallet|duitnow\s*transfer)\b/i, code: '9010' },
-  { rx: /\b(google\s*\*|google\s*ads|meta\s*ads|facebook|openai|chatgpt|canva|apify|adobe|microsoft|cloudflare|github|aws|digitalocean|apple\.com\/bill)\b/i, code: '6410' },
+  { rx: /\b(google\s*\*|google\s*ads|meta\s*ads|facebook|openai|chatgpt|canva|apify|adobe|microsoft|cloudflare|github|aws|digitalocean|apple\.com\/bill|spotify|netflix|youtube)\b/i, code: '6410' },
   { rx: /\b(service\s*charge|stamp\s*duty|bank\s*fee|ibg\s*fee|rentas|annual\s*fee|sst\s*charge|duitnow\s*fee)\b/i, code: '6510' },
-  { rx: /\b(rental|sewa|management\s*corp|jmb|maintenance\s*fee|coworking|common\s*ground|worq)\b/i, code: '7010' },
-  { rx: /\b(lhdn|hasil|kwsp|epf|perkeso|socso|zakat|ptptn|sspn|prudential|aia|great\s*eastern|allianz|klinik|clinic|hospital|pharmacy|watsons|guardian|popular|mph)\b/i, code: '8010' },
+  { rx: /\b(rental|sewa|management\s*corp|jmb|maintenance\s*fee|coworking|common\s*ground|worq|klia|airasia|batik\s*air|agoda|booking\.com)\b/i, code: '7010' },
+  { rx: /\b(lhdn|hasil|kwsp|epf|perkeso|socso|zakat|ptptn|sspn|prudential|aia|great\s*eastern|allianz|klinik|clinic|hospital|pharmacy|watsons|guardian|sephora|innisfree)\b/i, code: '8010' },
   { rx: /\b(own\s*account|transfer\s*to\s*savings|tabung|topup\s*tng|reload\s*ewallet|asb|tabung\s*haji)\b/i, code: '9010' },
 ];
 
 export function sanitizeField(val, maxLen = 100) {
-  let s = String(val ?? '').replace(/[\r\n\t]+/g, ' ').trim();
+  let s = String(val ?? '').replace(/[\x00-\x1F\x7F]+/g, ' ').trim();
   s = s.replace(/^[=+\-@|]+/, '').replace(/[\u2013\u2014]/g, '-');
-  s = s.replace(/[^\x20-\x7E\xA0-\xFF]/g, '');
   return s.slice(0, maxLen);
 }
 
@@ -316,39 +336,45 @@ export function classifyTransaction(txn, customRules = [], codeList = DEFAULT_CO
     const kw = String(rule.keyword || '').trim();
     if (!kw) continue;
     if (desc.toUpperCase().includes(kw.toUpperCase())) {
-      const meta = codeMap.get(rule.code) || { code: rule.code, label: rule.label || 'Custom Code', group: txn.inflow > 0 ? 'INCOME' : 'EXPENSE' };
-      return { code: meta.code, label: meta.label, group: meta.group, matchedBy: 'CUSTOM_RULE' };
+      const meta = codeMap.get(rule.code) || {
+        code: rule.code,
+        label: rule.label || 'Custom Category',
+        group: txn.inflow > 0 ? 'INCOME' : 'EXPENSE',
+        bg: '#e2e8f0',
+        fg: '#1e293b',
+      };
+      return { code: meta.code, label: meta.label, group: meta.group, bg: meta.bg, fg: meta.fg, matchedBy: 'CUSTOM_RULE' };
     }
   }
 
   // 2. Built-in Malaysian Merchant & Statutory Rulebook
   for (const r of BUILTIN_MY_RULES) {
     if (r.rx.test(desc)) {
-      const meta = codeMap.get(r.code);
-      return { code: meta.code, label: meta.label, group: meta.group, matchedBy: 'BUILTIN_MY' };
+      const meta = codeMap.get(r.code) || codeList[codeList.length - 1];
+      return { code: meta.code, label: meta.label, group: meta.group, bg: meta.bg, fg: meta.fg, matchedBy: 'BUILTIN_MY' };
     }
   }
 
   // 3. Explicit code in uploaded CSV if valid
   if (txn.explicitCode && codeMap.has(txn.explicitCode)) {
     const meta = codeMap.get(txn.explicitCode);
-    return { code: meta.code, label: meta.label, group: meta.group, matchedBy: 'CSV_CODE' };
+    return { code: meta.code, label: meta.label, group: meta.group, bg: meta.bg, fg: meta.fg, matchedBy: 'CSV_CODE' };
   }
 
   // 4. Inflow fallback
   if (txn.inflow > 0 && txn.outflow === 0) {
-    const meta = codeMap.get('4010');
-    return { code: meta.code, label: meta.label, group: meta.group, matchedBy: 'INFLOW_AUTO' };
+    const meta = codeMap.get('4010') || codeList[0];
+    return { code: meta.code, label: meta.label, group: meta.group, bg: meta.bg, fg: meta.fg, matchedBy: 'INFLOW_AUTO' };
   }
 
-  const unk = codeMap.get('9999');
-  return { code: unk.code, label: unk.label, group: unk.group, matchedBy: 'UNMATCHED' };
+  const unk = codeMap.get('9999') || codeList[codeList.length - 1];
+  return { code: unk.code, label: unk.label, group: unk.group, bg: unk.bg, fg: unk.fg, matchedBy: 'UNMATCHED' };
 }
 
-export function compileStatementLedger(rawText, customRules = [], reportMeta = {}) {
+export function compileStatementLedger(rawText, customRules = [], reportMeta = {}, codeList = DEFAULT_CODES) {
   const parsed = parseStatementInput(rawText);
   const rows = parsed.transactions.map((t, idx) => {
-    const cls = classifyTransaction(t, customRules);
+    const cls = classifyTransaction(t, customRules, codeList);
     return {
       rowIndex: idx + 1,
       date: t.date,
@@ -359,6 +385,8 @@ export function compileStatementLedger(rawText, customRules = [], reportMeta = {
       code: cls.code,
       categoryLabel: cls.label,
       group: cls.group,
+      bg: cls.bg || '#f1f5f9',
+      fg: cls.fg || '#0f172a',
       matchedBy: cls.matchedBy,
     };
   });
@@ -446,6 +474,113 @@ export function buildCategorizedCsv(ledger, sliceLimit = null) {
     lines.push(['NOTE', '', 'Generated via Hyperfetch Statement P&L Studio (hyperfetch-tools.github.io/statement-pnl/)', '', '', '', '', ''].join(','));
   }
   return [header, ...lines].join('\r\n') + '\r\n';
+}
+
+function xmlEsc(s) {
+  return String(s ?? '')
+    .replace(/^[=+\-@|]+/, '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * Generates a real 2-Sheet Microsoft Excel / Google Sheets .xls (SpreadsheetML XML) workbook:
+ * Sheet 1: Transactions (Date | Category | Description | Inflow | Outflow | Net)
+ * Sheet 2: Monthly Dashboard (Category Totals — matching personal/student expense trackers)
+ */
+export function buildExcelSpreadsheetXml(ledger, sliceLimit = null) {
+  const list = sliceLimit ? ledger.rows.slice(0, sliceLimit) : ledger.rows;
+  const subIn = list.reduce((s, r) => s + r.inflow, 0);
+  const subOut = list.reduce((s, r) => s + r.outflow, 0);
+
+  // Build category summary for Sheet 2
+  const catMap = new Map();
+  for (const r of list) {
+    const cur = catMap.get(r.categoryLabel) || { label: r.categoryLabel, count: 0, inflow: 0, outflow: 0 };
+    cur.count++;
+    cur.inflow += r.inflow;
+    cur.outflow += r.outflow;
+    catMap.set(r.categoryLabel, cur);
+  }
+  const cats = Array.from(catMap.values());
+
+  const txnRowsXml = list
+    .map(
+      (r) => `<Row>
+        <Cell><Data ss:Type="String">${xmlEsc(r.date)}</Data></Cell>
+        <Cell ss:StyleID="CatPill"><Data ss:Type="String">${xmlEsc(r.categoryLabel)}</Data></Cell>
+        <Cell><Data ss:Type="String">${xmlEsc(r.description)}</Data></Cell>
+        <Cell ss:StyleID="Num"><Data ss:Type="Number">${r.inflow.toFixed(2)}</Data></Cell>
+        <Cell ss:StyleID="Num"><Data ss:Type="Number">${r.outflow.toFixed(2)}</Data></Cell>
+        <Cell ss:StyleID="Num"><Data ss:Type="Number">${(r.inflow - r.outflow).toFixed(2)}</Data></Cell>
+      </Row>`
+    )
+    .join('\n');
+
+  const dashRowsXml = cats
+    .map(
+      (c) => `<Row>
+        <Cell ss:StyleID="CatPill"><Data ss:Type="String">${xmlEsc(c.label)}</Data></Cell>
+        <Cell><Data ss:Type="Number">${c.count}</Data></Cell>
+        <Cell ss:StyleID="Num"><Data ss:Type="Number">${c.outflow.toFixed(2)}</Data></Cell>
+        <Cell ss:StyleID="Num"><Data ss:Type="Number">${c.inflow.toFixed(2)}</Data></Cell>
+      </Row>`
+    )
+    .join('\n');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+ <Styles>
+  <Style ss:ID="Header"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#0B1F3A" ss:Pattern="Solid"/></Style>
+  <Style ss:ID="CatPill"><Font ss:Bold="1" ss:Color="#1E293B"/><Interior ss:Color="#EEF2FF" ss:Pattern="Solid"/></Style>
+  <Style ss:ID="Num"><NumberFormat ss:Format="#,##0.00"/></Style>
+  <Style ss:ID="Total"><Font ss:Bold="1"/><Interior ss:Color="#ECFDF5" ss:Pattern="Solid"/><NumberFormat ss:Format="#,##0.00"/></Style>
+ </Styles>
+ <Worksheet ss:Name="Transactions">
+  <Table>
+   <Column ss:Width="85"/><Column ss:Width="150"/><Column ss:Width="260"/><Column ss:Width="95"/><Column ss:Width="95"/><Column ss:Width="95"/>
+   <Row>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Date</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Category</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Description</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Inflow (RM)</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Outflow (RM)</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Net (RM)</Data></Cell>
+   </Row>
+   ${txnRowsXml}
+   <Row>
+    <Cell ss:StyleID="Total"><Data ss:Type="String">TOTAL</Data></Cell>
+    <Cell ss:StyleID="Total"><Data ss:Type="String">${list.length} items</Data></Cell>
+    <Cell ss:StyleID="Total"><Data ss:Type="String">${xmlEsc(ledger.meta.periodLabel)}</Data></Cell>
+    <Cell ss:StyleID="Total"><Data ss:Type="Number">${subIn.toFixed(2)}</Data></Cell>
+    <Cell ss:StyleID="Total"><Data ss:Type="Number">${subOut.toFixed(2)}</Data></Cell>
+    <Cell ss:StyleID="Total"><Data ss:Type="Number">${(subIn - subOut).toFixed(2)}</Data></Cell>
+   </Row>
+  </Table>
+ </Worksheet>
+ <Worksheet ss:Name="Monthly Dashboard">
+  <Table>
+   <Column ss:Width="180"/><Column ss:Width="90"/><Column ss:Width="130"/><Column ss:Width="130"/>
+   <Row>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Category</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Transactions</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Total Spent (RM)</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Total Earned (RM)</Data></Cell>
+   </Row>
+   ${dashRowsXml}
+   <Row>
+    <Cell ss:StyleID="Total"><Data ss:Type="String">GRAND TOTAL</Data></Cell>
+    <Cell ss:StyleID="Total"><Data ss:Type="Number">${list.length}</Data></Cell>
+    <Cell ss:StyleID="Total"><Data ss:Type="Number">${subOut.toFixed(2)}</Data></Cell>
+    <Cell ss:StyleID="Total"><Data ss:Type="Number">${subIn.toFixed(2)}</Data></Cell>
+   </Row>
+  </Table>
+ </Worksheet>
+</Workbook>`;
 }
 
 /* ============================================================================
@@ -597,6 +732,7 @@ export function generateMonthlyPnlPdfBytes(ledger, { watermark = true } = {}) {
 if (typeof document !== 'undefined') {
   let currentLedger = null;
   let activeFilter = 'ALL';
+  let activeProfile = localStorage.getItem(PROFILE_STORAGE_KEY) === 'SME' ? 'SME' : 'STUDENT';
   let activeCheckoutProduct = 'MYPAYROL';
   let activePaymentRail = 'CARD';
   let activeOrderId = null;
@@ -604,6 +740,78 @@ if (typeof document !== 'undefined') {
   let isUnlocked = Boolean(localStorage.getItem('zyk_mypayroll_key'));
 
   const $ = (id) => document.getElementById(id);
+
+  function loadCategories() {
+    try {
+      const raw = localStorage.getItem(CATS_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length >= 3) return parsed;
+      }
+    } catch {}
+    return PRESET_PROFILES[activeProfile].map((c) => ({ ...c }));
+  }
+
+  let activeCategories = loadCategories();
+
+  function saveCategories() {
+    localStorage.setItem(CATS_STORAGE_KEY, JSON.stringify(activeCategories));
+  }
+
+  function switchProfileMode(mode) {
+    activeProfile = mode === 'SME' ? 'SME' : 'STUDENT';
+    localStorage.setItem(PROFILE_STORAGE_KEY, activeProfile);
+    activeCategories = PRESET_PROFILES[activeProfile].map((c) => ({ ...c }));
+    saveCategories();
+    $('modeBtnStudent').classList.toggle('active', activeProfile === 'STUDENT');
+    $('modeBtnSme').classList.toggle('active', activeProfile === 'SME');
+    if (activeProfile === 'STUDENT' && $('repTitle').value === 'Monthly Spending & Earning P&L Report') {
+      $('repTitle').value = 'Monthly Expense & Income Tracker';
+    } else if (activeProfile === 'SME' && $('repTitle').value === 'Monthly Expense & Income Tracker') {
+      $('repTitle').value = 'Monthly Spending & Earning P&L Report';
+    }
+    renderCategoryManager();
+    if ($('rawStatementBox').value.trim()) runCompile();
+  }
+
+  function renderCategoryManager() {
+    const wrap = $('catManagerGrid');
+    if (!wrap) return;
+    wrap.replaceChildren();
+    activeCategories.forEach((cat) => {
+      const chip = document.createElement('div');
+      chip.className = 'cat-edit-chip';
+      const dot = document.createElement('span');
+      dot.className = 'cat-dot';
+      dot.style.background = cat.bg || '#e2e8f0';
+      dot.style.borderColor = cat.fg || '#475569';
+
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.className = 'cat-rename-input';
+      inp.value = cat.label;
+      inp.title = `Rename ${cat.code}`;
+      inp.addEventListener('change', () => {
+        const nextLabel = sanitizeField(inp.value, 40);
+        if (!nextLabel) {
+          inp.value = cat.label;
+          return;
+        }
+        cat.label = nextLabel;
+        saveCategories();
+        if (currentLedger) {
+          for (const r of currentLedger.rows) {
+            if (r.code === cat.code) r.categoryLabel = nextLabel;
+          }
+          currentLedger = summarizeLedgerRows(currentLedger.rows, currentLedger.meta.sourceMode, currentLedger.meta);
+          renderLedgerResults();
+        }
+      });
+
+      chip.append(dot, inp);
+      wrap.appendChild(chip);
+    });
+  }
 
   function loadCustomRules() {
     try {
@@ -648,7 +856,7 @@ if (typeof document !== 'undefined') {
 
   function applyQuickRuleAndRecompute(keyword, newCode) {
     saveCustomRule(keyword, newCode);
-    const meta = DEFAULT_CODES.find((c) => c.code === newCode) || DEFAULT_CODES[DEFAULT_CODES.length - 1];
+    const meta = activeCategories.find((c) => c.code === newCode) || activeCategories[activeCategories.length - 1];
     const kwUpper = keyword.toUpperCase();
     let updated = 0;
     for (const r of currentLedger.rows) {
@@ -656,30 +864,38 @@ if (typeof document !== 'undefined') {
         r.code = meta.code;
         r.categoryLabel = meta.label;
         r.group = meta.group;
+        r.bg = meta.bg || '#f1f5f9';
+        r.fg = meta.fg || '#0f172a';
         r.matchedBy = 'CUSTOM_RULE';
         updated++;
       }
     }
     currentLedger = summarizeLedgerRows(currentLedger.rows, currentLedger.meta.sourceMode, currentLedger.meta);
     renderLedgerResults();
-    $('ruleToast').textContent = `Saved rule "${kwUpper}" -> ${meta.code} (${updated} matching row${updated === 1 ? '' : 's'} updated & remembered for next month!)`;
+    $('ruleToast').textContent = `Saved rule "${kwUpper}" -> ${meta.label} (${updated} matching row${updated === 1 ? '' : 's'} updated & remembered!)`;
   }
 
   function buildCodeSelect(row) {
     const sel = document.createElement('select');
     sel.className = 'code-select';
-    for (const c of DEFAULT_CODES) {
+    sel.style.background = row.bg || '#ffffff';
+    sel.style.color = row.fg || '#0f172a';
+    for (const c of activeCategories) {
       const opt = document.createElement('option');
       opt.value = c.code;
-      opt.textContent = `${c.code} · ${c.label}`;
+      opt.textContent = activeProfile === 'SME' ? `${c.code} · ${c.label}` : c.label;
       if (c.code === row.code) opt.selected = true;
       sel.appendChild(opt);
     }
     sel.addEventListener('change', () => {
-      const meta = DEFAULT_CODES.find((c) => c.code === sel.value) || DEFAULT_CODES[DEFAULT_CODES.length - 1];
+      const meta = activeCategories.find((c) => c.code === sel.value) || activeCategories[activeCategories.length - 1];
       row.code = meta.code;
       row.categoryLabel = meta.label;
       row.group = meta.group;
+      row.bg = meta.bg || '#f1f5f9';
+      row.fg = meta.fg || '#0f172a';
+      sel.style.background = row.bg;
+      sel.style.color = row.fg;
       currentLedger = summarizeLedgerRows(currentLedger.rows, currentLedger.meta.sourceMode, currentLedger.meta);
       renderSummaryAndCategories();
     });
@@ -824,11 +1040,16 @@ if (typeof document !== 'undefined') {
   function runCompile() {
     const raw = $('rawStatementBox').value;
     if (!raw.trim() || raw.length > MAX_INPUT_BYTES) return;
-    currentLedger = compileStatementLedger(raw, loadCustomRules(), {
-      reportTitle: $('repTitle').value,
-      accountHolder: $('repEntity').value,
-      periodLabel: $('repMonth').value,
-    });
+    currentLedger = compileStatementLedger(
+      raw,
+      loadCustomRules(),
+      {
+        reportTitle: $('repTitle').value,
+        accountHolder: $('repEntity').value,
+        periodLabel: $('repMonth').value,
+      },
+      activeCategories
+    );
     if (!currentLedger.rows.length) {
       $('loadedFileLabel').textContent = 'Could not detect transactions — check extracted lines below or paste CSV.';
       $('rawEditorDrawer').classList.add('open');
@@ -858,6 +1079,18 @@ if (typeof document !== 'undefined') {
     if (!currentLedger || !currentLedger.rows.length) return;
     let proOk = false;
     if (isUnlocked) proOk = await verifyStoredProKeyLive();
+
+    if (kind === 'EXCEL') {
+      if (!proOk && currentLedger.rows.length > FREE_ROW_LIMIT) {
+        const xls = buildExcelSpreadsheetXml(currentLedger, FREE_ROW_LIMIT);
+        triggerDownload(`FREE25_Expense_Report_${currentLedger.meta.periodLabel}.xls`, xls, 'application/vnd.ms-excel;charset=utf-8');
+        openUnlockDrawer('MYPAYROL');
+        return;
+      }
+      const xls = buildExcelSpreadsheetXml(currentLedger, null);
+      triggerDownload(`Expense_Report_${currentLedger.meta.periodLabel}.xls`, xls, 'application/vnd.ms-excel;charset=utf-8');
+      return;
+    }
 
     if (kind === 'CSV') {
       if (!proOk && currentLedger.rows.length > FREE_ROW_LIMIT) {
@@ -1097,6 +1330,39 @@ if (typeof document !== 'undefined') {
   }
 
   refreshUnlockUi();
+  $('modeBtnStudent').classList.toggle('active', activeProfile === 'STUDENT');
+  $('modeBtnSme').classList.toggle('active', activeProfile === 'SME');
+  renderCategoryManager();
+
+  $('modeBtnStudent').addEventListener('click', () => switchProfileMode('STUDENT'));
+  $('modeBtnSme').addEventListener('click', () => switchProfileMode('SME'));
+  $('btnToggleCatEditor').addEventListener('click', () => $('catManagerDrawer').classList.toggle('open'));
+  $('btnAddCustomCat').addEventListener('click', () => {
+    const label = sanitizeField($('newCatNameInput').value, 40);
+    if (!label) return;
+    const customCode = `C${String(activeCategories.length + 1).padStart(3, '0')}`;
+    const palette = [
+      ['#ffedd5', '#9a3412'],
+      ['#dbeafe', '#1e40af'],
+      ['#f3e8ff', '#6b21a8'],
+      ['#fce7f3', '#9d174d'],
+      ['#ccfbf1', '#115e59'],
+    ];
+    const [bg, fg] = palette[activeCategories.length % palette.length];
+    activeCategories.splice(activeCategories.length - 1, 0, {
+      code: customCode,
+      label,
+      group: $('newCatGroupSelect').value === 'INCOME' ? 'INCOME' : 'EXPENSE',
+      bg,
+      fg,
+    });
+    saveCategories();
+    $('newCatNameInput').value = '';
+    renderCategoryManager();
+    if (currentLedger) renderLedgerResults();
+  });
+  $('btnResetCats').addEventListener('click', () => switchProfileMode(activeProfile));
+
   $('licenseStatusBadge').addEventListener('click', () => openUnlockDrawer('MYPAYROL'));
   $('btnSelectCsv').addEventListener('click', () => $('csvFileInput').click());
   $('btnLoadDemo').addEventListener('click', loadSampleStatement);
@@ -1132,6 +1398,7 @@ if (typeof document !== 'undefined') {
     });
   });
 
+  $('btnExportExcel').addEventListener('click', () => handleExport('EXCEL'));
   $('btnExportCsv').addEventListener('click', () => handleExport('CSV'));
   $('btnExportPdf').addEventListener('click', () => handleExport('PDF'));
   $('btnCloseDrawer').addEventListener('click', closeUnlockDrawer);

@@ -331,15 +331,23 @@
       <div class="designer-wrap" aria-label="Custom Report Layout Designer">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
           <div>
-            <strong style="color:var(--navy);font-size:14px;">Drag &amp; Drop Report Designer (Live Image &amp; PDF Layout)</strong>
-            <div style="font-size:12px;color:var(--ink-muted);">Drag any box (or tap ↑ / ↓ on phone) to reorder — e.g. drag <strong>Name / Account Box</strong> to the bottom! Exported PNG &amp; PDF follow this exact design.</div>
+            <strong style="color:var(--navy);font-size:14px;">Canva-Style Drag &amp; Drop Report Studio (Fully Editable)</strong>
+            <div style="font-size:12px;color:var(--ink-muted);">Edit background colors/gradients/wallpapers, add your own logo/stickers/text boxes, and drag any box (or tap ↑ / ↓ on phone) to reorder!</div>
           </div>
-          <button type="button" id="btnResetDesign" class="btn btn-outline btn-xs">Reset Layout</button>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <input type="file" id="bgImageInput" accept="image/*" hidden="">
+            <input type="file" id="assetImageInput" accept="image/*" hidden="">
+            <button type="button" id="btnUploadBgImg" class="btn btn-outline btn-xs">+ Bg Wallpaper</button>
+            <button type="button" id="btnAddAssetImg" class="btn btn-outline btn-xs">+ Add Logo / Sticker</button>
+            <button type="button" id="btnAddCustomText" class="btn btn-outline btn-xs">+ Add Text Box</button>
+            <button type="button" id="btnAddDivider" class="btn btn-outline btn-xs">+ Divider</button>
+            <button type="button" id="btnResetDesign" class="btn btn-ghost btn-xs">Reset</button>
+          </div>
         </div>
 
         <div class="designer-controls">
           <div>
-            <label class="field-label" for="designThemeSelect">Color Theme</label>
+            <label class="field-label" for="designThemeSelect">Quick Theme</label>
             <select id="designThemeSelect" class="text-input">
               <option value="NAVY">Midnight Navy</option>
               <option value="PASTEL">Soft Pastel</option>
@@ -349,19 +357,53 @@
             </select>
           </div>
           <div>
-            <label class="field-label" for="designAccentInput">Accent Color</label>
-            <input id="designAccentInput" type="color" class="text-input" style="height:40px;padding:3px;" value="#059669">
-          </div>
-          <div>
-            <label class="field-label" for="designFontSelect">Font Style</label>
-            <select id="designFontSelect" class="text-input">
-              <option value="SANS">Clean Sans</option>
-              <option value="SERIF">Editorial Serif</option>
-              <option value="MONO">Receipt Mono</option>
+            <label class="field-label" for="designBgTypeSelect">Background Style</label>
+            <select id="designBgTypeSelect" class="text-input">
+              <option value="SOLID">Solid Color</option>
+              <option value="GRADIENT">2-Color Gradient</option>
+              <option value="DOTS">Polka Dots</option>
+              <option value="GRID">Grid Paper</option>
+              <option value="IMAGE">Custom Wallpaper</option>
             </select>
           </div>
           <div>
-            <label class="field-label" for="designNoteInput">Custom Note / Goal</label>
+            <label class="field-label" for="designBgColorInput">Bg Color 1 / 2</label>
+            <div style="display:flex;gap:6px;">
+              <input id="designBgColorInput" type="color" class="text-input" style="height:40px;padding:3px;" value="#ffffff">
+              <input id="designBgColor2Input" type="color" class="text-input" style="height:40px;padding:3px;" value="#e2e8f0">
+            </div>
+          </div>
+          <div>
+            <label class="field-label" for="designCardBgInput">Card / Text / Accent</label>
+            <div style="display:flex;gap:6px;">
+              <input id="designCardBgInput" type="color" class="text-input" style="height:40px;padding:3px;" value="#f8fafc" title="Card Fill">
+              <input id="designTextColorInput" type="color" class="text-input" style="height:40px;padding:3px;" value="#0f172a" title="Text Color">
+              <input id="designAccentInput" type="color" class="text-input" style="height:40px;padding:3px;" value="#059669" title="Accent Color">
+            </div>
+          </div>
+          <div>
+            <label class="field-label" for="designRadiusRange">Card Radius &amp; Opacity</label>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <input id="designRadiusRange" type="range" min="0" max="24" value="12" style="width:50%;" title="Corner Radius">
+              <input id="designCardOpacityRange" type="range" min="35" max="100" value="94" style="width:50%;" title="Card Opacity %">
+            </div>
+          </div>
+          <div>
+            <label class="field-label" for="designFormatSelect">Canvas Size &amp; Font</label>
+            <div style="display:flex;gap:6px;">
+              <select id="designFormatSelect" class="text-input" style="width:55%;">
+                <option value="REPORT">Standard</option>
+                <option value="STORY">IG Story 9:16</option>
+              </select>
+              <select id="designFontSelect" class="text-input" style="width:45%;">
+                <option value="SANS">Sans</option>
+                <option value="SERIF">Serif</option>
+                <option value="MONO">Mono</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="field-label" for="designNoteInput">Note / Footer Text</label>
             <input id="designNoteInput" class="text-input" placeholder="e.g. Nov Goal: Spend under RM 800">
           </div>
         </div>

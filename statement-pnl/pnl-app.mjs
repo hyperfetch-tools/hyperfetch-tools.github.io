@@ -9,6 +9,7 @@ import {
   DESIGN_THEMES,
   createDefaultDesignState,
   hexToRgbNorm,
+  readAndCompressImageFile,
   renderDesignerPreviewDom,
   exportDesignerPngBlob,
 } from './report-designer.mjs';
@@ -689,10 +690,16 @@ export function generateMonthlyPnlPdfBytes(ledger, { watermark = true, design = 
   };
 
   const theme = (design && DESIGN_THEMES[design.themeKey]) || DESIGN_THEMES.NAVY;
+  const [bgr, bgg, bgb] = hexToRgbNorm((design && design.bgColor) || theme.bg);
   const [hr, hg, hb] = hexToRgbNorm(theme.headerBg);
   const [hfr, hfg, hfb] = hexToRgbNorm(theme.headerFg);
   const [ar, ag, ab] = hexToRgbNorm((design && design.accentColor) || theme.accent);
+  const [tr, tg, tb] = hexToRgbNorm((design && design.textColor) || theme.text);
   const blocks = (design && Array.isArray(design.blocks) ? design.blocks : createDefaultDesignState().blocks).filter((b) => b.visible);
+
+  if (bgr < 0.99 || bgg < 0.99 || bgb < 0.99) {
+    rectFill(0, 0, 595.28, 841.89, bgr, bgg, bgb);
+  }
 
   const t = ledger.totals;
   let y = 808;
@@ -708,7 +715,7 @@ export function generateMonthlyPnlPdfBytes(ledger, { watermark = true, design = 
       rectFill(36, y - 32, 523.28, 32, 0.96, 0.97, 0.99);
       rectFill(36, y - 32, 4, 32, ar, ag, ab);
       text('PREPARED FOR / ACCOUNT HOLDER', 48, y - 12, 'F2', 7.2, 0.35, 0.4, 0.5);
-      text(ledger.meta.accountHolder, 48, y - 25, 'F2', 10, 0.06, 0.09, 0.16);
+      text(ledger.meta.accountHolder, 48, y - 25, 'F2', 10, tr, tg, tb);
       y -= 44;
     } else if (blk.id === 'KPIS') {
       rectFill(36, y - 44, 168, 44, 0.92, 0.99, 0.95);
@@ -735,10 +742,10 @@ export function generateMonthlyPnlPdfBytes(ledger, { watermark = true, design = 
       y -= 32;
       for (const cat of ledger.categoryBreakdown.slice(0, 12)) {
         if (y < 95) break;
-        text(cat.label.slice(0, 42), 44, y, 'F1', 8.4);
-        textRight(String(cat.count), 330, y, 'F3', 8.4);
-        textRight(fmtMoney(cat.inflow), 440, y, 'F3', 8.4);
-        textRight(fmtMoney(cat.outflow), 550, y, 'F3', 8.4);
+        text(cat.label.slice(0, 42), 44, y, 'F1', 8.4, tr, tg, tb);
+        textRight(String(cat.count), 330, y, 'F3', 8.4, tr, tg, tb);
+        textRight(fmtMoney(cat.inflow), 440, y, 'F3', 8.4, tr, tg, tb);
+        textRight(fmtMoney(cat.outflow), 550, y, 'F3', 8.4, tr, tg, tb);
         line(36, y - 5, 559.28, y - 5);
         y -= 17;
       }
@@ -749,15 +756,19 @@ export function generateMonthlyPnlPdfBytes(ledger, { watermark = true, design = 
       y -= 28;
       for (const r of ledger.rows.slice(0, 8)) {
         if (y < 95) break;
-        text(`${r.date}  ${r.description.slice(0, 38)} (${r.categoryLabel.slice(0, 18)})`, 44, y, 'F1', 8);
-        textRight(r.inflow > 0 ? `+${fmtMoney(r.inflow)}` : `-${fmtMoney(r.outflow)}`, 550, y, 'F3', 8.2);
+        text(`${r.date}  ${r.description.slice(0, 38)} (${r.categoryLabel.slice(0, 18)})`, 44, y, 'F1', 8, tr, tg, tb);
+        textRight(r.inflow > 0 ? `+${fmtMoney(r.inflow)}` : `-${fmtMoney(r.outflow)}`, 550, y, 'F3', 8.2, tr, tg, tb);
         y -= 15;
       }
       y -= 8;
-    } else if (blk.id === 'NOTE') {
+    } else if (blk.id === 'NOTE' || blk.type === 'CUSTOM_TEXT') {
+      const val = blk.id === 'NOTE' ? String((design && design.customNote) || '') : String(blk.text || '');
       rectFill(36, y - 24, 523.28, 24, 0.96, 0.97, 0.99);
-      text(String((design && design.customNote) || '').slice(0, 85), 44, y - 15, 'F1', 8.2, 0.25, 0.3, 0.4);
+      text(val.slice(0, 85), 44, y - 15, 'F1', 8.4, tr, tg, tb);
       y -= 34;
+    } else if (blk.type === 'CUSTOM_DIVIDER') {
+      rectFill(36, y - 6, 523.28, 2, ar, ag, ab);
+      y -= 14;
     }
   }
 
@@ -868,7 +879,9 @@ if (typeof document !== 'undefined') {
   let activeDesign = loadDesignState();
 
   function saveDesignState() {
-    localStorage.setItem(DESIGN_STORAGE_KEY, JSON.stringify(activeDesign));
+    try {
+      localStorage.setItem(DESIGN_STORAGE_KEY, JSON.stringify(activeDesign));
+    } catch {}
   }
 
   function refreshDesignerPreview() {
@@ -885,6 +898,15 @@ if (typeof document !== 'undefined') {
         activeDesign.blocks[idx].visible = !activeDesign.blocks[idx].visible;
         saveDesignState();
         refreshDesignerPreview();
+      },
+      onDelete(idx) {
+        activeDesign.blocks.splice(idx, 1);
+        saveDesignState();
+        refreshDesignerPreview();
+      },
+      onUpdateCustom(idx, patch) {
+        Object.assign(activeDesign.blocks[idx], patch);
+        saveDesignState();
       },
     });
   }
@@ -1619,42 +1641,132 @@ if (typeof document !== 'undefined') {
   $('btnExportPdf').addEventListener('click', () => handleExport('PDF'));
 
   // Design Customizer Controls
-  $('designThemeSelect').value = activeDesign.themeKey || 'NAVY';
-  $('designAccentInput').value = activeDesign.accentColor || '#059669';
-  $('designFontSelect').value = activeDesign.fontStyle || 'SANS';
-  $('designNoteInput').value = activeDesign.customNote || '';
+  function syncDesignInputsFromState() {
+    $('designThemeSelect').value = activeDesign.themeKey || 'NAVY';
+    $('designBgTypeSelect').value = activeDesign.bgType || 'SOLID';
+    $('designBgColorInput').value = activeDesign.bgColor || '#ffffff';
+    $('designBgColor2Input').value = activeDesign.bgColor2 || '#e2e8f0';
+    $('designCardBgInput').value = activeDesign.cardBgColor || '#f8fafc';
+    $('designTextColorInput').value = activeDesign.textColor || '#0f172a';
+    $('designAccentInput').value = activeDesign.accentColor || '#059669';
+    $('designRadiusRange').value = String(activeDesign.cardRadius ?? 12);
+    $('designCardOpacityRange').value = String(Math.round((activeDesign.cardOpacity ?? 0.94) * 100));
+    $('designFormatSelect').value = activeDesign.canvasFormat || 'REPORT';
+    $('designFontSelect').value = activeDesign.fontStyle || 'SANS';
+    $('designNoteInput').value = activeDesign.customNote || '';
+  }
+  syncDesignInputsFromState();
 
   $('designThemeSelect').addEventListener('change', (e) => {
     activeDesign.themeKey = e.target.value;
     const theme = DESIGN_THEMES[activeDesign.themeKey];
     if (theme) {
+      activeDesign.bgColor = theme.bg;
+      activeDesign.bgColor2 = theme.bg2;
+      activeDesign.cardBgColor = theme.cardBg;
+      activeDesign.textColor = theme.text;
       activeDesign.accentColor = theme.accent;
-      $('designAccentInput').value = theme.accent;
+      syncDesignInputsFromState();
     }
     saveDesignState();
     refreshDesignerPreview();
   });
-  $('designAccentInput').addEventListener('input', (e) => {
-    activeDesign.accentColor = e.target.value;
+
+  [
+    ['designBgTypeSelect', 'bgType'],
+    ['designBgColorInput', 'bgColor'],
+    ['designBgColor2Input', 'bgColor2'],
+    ['designCardBgInput', 'cardBgColor'],
+    ['designTextColorInput', 'textColor'],
+    ['designAccentInput', 'accentColor'],
+    ['designFormatSelect', 'canvasFormat'],
+    ['designFontSelect', 'fontStyle'],
+    ['designNoteInput', 'customNote'],
+  ].forEach(([elId, prop]) => {
+    $(elId).addEventListener('input', (e) => {
+      activeDesign[prop] = e.target.value;
+      saveDesignState();
+      refreshDesignerPreview();
+    });
+  });
+
+  $('designRadiusRange').addEventListener('input', (e) => {
+    activeDesign.cardRadius = Number(e.target.value);
     saveDesignState();
     refreshDesignerPreview();
   });
-  $('designFontSelect').addEventListener('change', (e) => {
-    activeDesign.fontStyle = e.target.value;
+  $('designCardOpacityRange').addEventListener('input', (e) => {
+    activeDesign.cardOpacity = Number(e.target.value) / 100;
     saveDesignState();
     refreshDesignerPreview();
   });
-  $('designNoteInput').addEventListener('input', (e) => {
-    activeDesign.customNote = e.target.value;
+
+  // Upload Custom Background Wallpaper
+  $('btnUploadBgImg').addEventListener('click', () => $('bgImageInput').click());
+  $('bgImageInput').addEventListener('change', async (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    try {
+      activeDesign.bgImageDataUrl = await readAndCompressImageFile(f, 1080);
+      activeDesign.bgType = 'IMAGE';
+      $('designBgTypeSelect').value = 'IMAGE';
+      saveDesignState();
+      refreshDesignerPreview();
+    } catch {}
+  });
+
+  // Add Custom Logo / Sticker Asset
+  $('btnAddAssetImg').addEventListener('click', () => $('assetImageInput').click());
+  $('assetImageInput').addEventListener('change', async (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    try {
+      const dataUrl = await readAndCompressImageFile(f, 600);
+      activeDesign.blocks.unshift({
+        id: `IMG_${Date.now()}`,
+        kind: 'CUSTOM',
+        type: 'CUSTOM_IMAGE',
+        label: `Custom Image (${f.name.slice(0, 14)})`,
+        visible: true,
+        imageDataUrl: dataUrl,
+        sizePx: 88,
+        align: 'center',
+      });
+      saveDesignState();
+      refreshDesignerPreview();
+    } catch {}
+  });
+
+  // Add Custom Text Box & Divider
+  $('btnAddCustomText').addEventListener('click', () => {
+    activeDesign.blocks.push({
+      id: `TXT_${Date.now()}`,
+      kind: 'CUSTOM',
+      type: 'CUSTOM_TEXT',
+      label: 'Custom Text Box',
+      visible: true,
+      text: 'Custom Heading / @YourHandle',
+      align: 'center',
+    });
     saveDesignState();
     refreshDesignerPreview();
   });
+
+  $('btnAddDivider').addEventListener('click', () => {
+    activeDesign.blocks.push({
+      id: `DIV_${Date.now()}`,
+      kind: 'CUSTOM',
+      type: 'CUSTOM_DIVIDER',
+      label: 'Divider Line',
+      visible: true,
+    });
+    saveDesignState();
+    refreshDesignerPreview();
+  });
+
   $('btnResetDesign').addEventListener('click', () => {
     activeDesign = createDefaultDesignState();
-    $('designThemeSelect').value = activeDesign.themeKey;
-    $('designAccentInput').value = activeDesign.accentColor;
-    $('designFontSelect').value = activeDesign.fontStyle;
-    $('designNoteInput').value = activeDesign.customNote;
+    syncDesignInputsFromState();
     saveDesignState();
     refreshDesignerPreview();
   });

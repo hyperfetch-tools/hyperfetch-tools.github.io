@@ -89,6 +89,8 @@ function parseDelimitedMatrix(rawText) {
   if (lines.length < 2) return null;
 
   const sample = lines[0];
+  // Do not mistake currency commas (e.g. "1,250.00") in pasted PDF/bank lines for CSV columns
+  if (/^\s*(\d{1,4}[\/\-]\d{1,2}[\/\-]\d{2,4}|\d{1,2}\s+[A-Za-z]{3})\s+/i.test(sample)) return null;
   const tabs = (sample.match(/\t/g) || []).length;
   const semis = (sample.match(/;/g) || []).length;
   const commas = (sample.match(/,/g) || []).length;
@@ -200,26 +202,34 @@ export function parseStatementInput(rawText) {
     return { sourceMode: `DELIMITED (${matrix.delimiter === ';' ? 'Semicolon' : matrix.delimiter === '\t' ? 'TSV' : 'CSV'})`, transactions: txns };
   }
 
-  // Fallback: Raw Pasted PDF / Mobile App Statement Lines
+  // Fallback: Raw Pasted or Extracted Bank PDF Lines (Maybank, TNG eWallet, CIMB, Public Bank, GXBank)
   const lines = String(rawText || '').replace(/\r\n/g, '\n').split('\n');
   const txns = [];
-  const lineRx =
-    /^\s*(\d{1,4}[\/\-]\d{1,2}[\/\-]\d{2,4}|\d{1,2}\s+[A-Za-z]{3}(?:\s+\d{2,4})?)\s+(.+?)\s+([+\-]?(?:RM\s*)?[\d,]+\.\d{2}(?:\s*(?:DR|CR|\+|-))?)\s*$/i;
+  // Matches: <Date> <Description> <TxnAmount (+/-/DR/CR/RM)> [Optional Running Balance]
+  const lineWithBalRx =
+    /^\s*(\d{1,4}[\/\-]\d{1,2}[\/\-]\d{2,4}|\d{1,2}\s+[A-Za-z]{3}(?:\s+\d{2,4})?)\s+(.+?)\s+([+\-]?(?:RM\s*)?[\d,]+\.\d{2}(?:\s*(?:DR|CR|\+|-))?)(?:\s+(?:RM\s*)?[\d,]+\.\d{2}(?:\s*(?:DR|CR))?)?\s*$/i;
 
   for (const rawLine of lines) {
     if (txns.length >= MAX_ROWS) break;
-    const m = rawLine.match(lineRx);
+    const m = rawLine.match(lineWithBalRx);
     if (!m) continue;
     const dateStr = sanitizeField(m[1], 20);
     const descStr = sanitizeField(m[2], 110);
+    if (/^(opening|closing|beginning|ending|brought\s*forward|balance\s*b\/f|balance\s*c\/f)/i.test(descStr)) continue;
+
     const amtRaw = m[3];
     const isCr = /\bCR\b|\+$/i.test(amtRaw) || /^\+/.test(amtRaw);
     const isDr = /\bDR\b|-$/i.test(amtRaw) || /^-/.test(amtRaw);
     const num = Math.abs(parseMoneySigned(amtRaw) || 0);
     if (num <= 0) continue;
 
-    // Heuristic: if neither CR nor DR is explicit, positive credit keywords map to inflow
-    const looksIncome = isCr || (!isDr && /\b(payout|salary|gaji|deposit|credit|hibah|refund|transfer\s*from)\b/i.test(descStr));
+    // Heuristic: if neither CR nor DR is explicit, positive credit keywords map to inflow (incl. TNG Reload / GO+ / Cashback)
+    const looksIncome =
+      isCr ||
+      (!isDr &&
+        /\b(payout|salary|gaji|deposit|credit|hibah|refund|cashback|reload|top\s*up\s*from|transfer\s*from|received\s*from|go\+\s*return)\b/i.test(
+          descStr
+        ));
     txns.push({
       date: dateStr,
       description: descStr,
@@ -229,7 +239,7 @@ export function parseStatementInput(rawText) {
     });
   }
 
-  return { sourceMode: 'PASTED PDF / APP TEXT', transactions: txns };
+  return { sourceMode: 'PDF / APP TEXT', transactions: txns };
 }
 
 export function classifyTransaction(txn, customRules = [], codeList = DEFAULT_CODES) {
@@ -928,19 +938,108 @@ if (typeof document !== 'undefined') {
     }
   }
 
+  let pendingPdfBytes = null;
+  let pendingPdfName = '';
+
+  async function extractPdfLinesLocally(uint8Bytes, password = '') {
+    const pdfjsLib = await import('./vendor/pdf.min.mjs');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = './vendor/pdf.worker.min.mjs';
+
+    const loadingTask = pdfjsLib.getDocument({
+      data: uint8Bytes.slice(),
+      password: password || undefined,
+    });
+    const doc = await loadingTask.promise;
+    const allLines = [];
+
+    for (let p = 1; p <= doc.numPages; p++) {
+      const page = await doc.getPage(p);
+      const tc = await page.getTextContent();
+      const buckets = new Map();
+      for (const item of tc.items) {
+        const str = String(item.str || '').trim();
+        if (!str) continue;
+        const y = Math.round((item.transform?.[5] || 0) / 3) * 3;
+        const x = item.transform?.[4] || 0;
+        if (!buckets.has(y)) buckets.set(y, []);
+        buckets.get(y).push({ x, str });
+      }
+      const ys = Array.from(buckets.keys()).sort((a, b) => b - a);
+      for (const y of ys) {
+        const rowStr = buckets
+          .get(y)
+          .sort((a, b) => a.x - b.x)
+          .map((t) => t.str)
+          .join(' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        if (rowStr) allLines.push(rowStr);
+      }
+    }
+    return allLines.join('\n');
+  }
+
+  async function handleUploadedFile(file) {
+    if (!file) return;
+    if (file.size > MAX_INPUT_BYTES) {
+      $('loadedFileLabel').textContent = 'File exceeds 10 MB limit.';
+      return;
+    }
+    const isPdf = /\.pdf$/i.test(file.name || '') || file.type === 'application/pdf';
+    if (!isPdf) {
+      $('pdfPasswordBox').style.display = 'none';
+      pendingPdfBytes = null;
+      $('loadedFileLabel').textContent = `Loaded: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+      $('rawStatementBox').value = await file.text();
+      runCompile();
+      return;
+    }
+
+    $('loadedFileLabel').textContent = `Decrypting & reading PDF locally in browser RAM: ${file.name}...`;
+    pendingPdfName = file.name;
+    pendingPdfBytes = new Uint8Array(await file.arrayBuffer());
+    await tryUnlockAndParsePdf('');
+  }
+
+  async function tryUnlockAndParsePdf(password) {
+    if (!pendingPdfBytes) return;
+    try {
+      const extractedText = await extractPdfLinesLocally(pendingPdfBytes, password);
+      $('pdfPasswordBox').style.display = 'none';
+      $('pdfPasswordInput').value = '';
+      $('pdfPasswordMsg').textContent = '';
+      pendingPdfBytes = null;
+      $('loadedFileLabel').textContent = `PDF Decrypted Locally: ${pendingPdfName} — Auto-Coding Now!`;
+      $('rawStatementBox').value = extractedText;
+      runCompile();
+    } catch (err) {
+      if (err && (err.name === 'PasswordException' || /password/i.test(err.message || ''))) {
+        $('pdfPasswordBox').style.display = 'block';
+        $('loadedFileLabel').textContent = `Password-Protected PDF: ${pendingPdfName}`;
+        $('pdfPasswordMsg').textContent =
+          err.code === 2
+            ? 'Incorrect PDF password — please try again.'
+            : 'Enter PDF password below (100% local in RAM — never uploaded).';
+        $('pdfPasswordInput').focus();
+      } else {
+        $('loadedFileLabel').textContent = `Could not read PDF (${err?.message || 'Unsupported PDF'}). Try pasting statement text instead.`;
+      }
+    }
+  }
+
   refreshUnlockUi();
   $('licenseStatusBadge').addEventListener('click', () => openUnlockDrawer('MYPAYROL'));
   $('btnSelectCsv').addEventListener('click', () => $('csvFileInput').click());
   $('btnLoadDemo').addEventListener('click', loadSampleStatement);
   $('btnToggleRaw').addEventListener('click', () => $('rawEditorDrawer').classList.toggle('open'));
   $('btnRecompile').addEventListener('click', runCompile);
+  $('btnUnlockPdf').addEventListener('click', () => tryUnlockAndParsePdf($('pdfPasswordInput').value));
+  $('pdfPasswordInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') tryUnlockAndParsePdf($('pdfPasswordInput').value);
+  });
 
   $('csvFileInput').addEventListener('change', async (e) => {
-    const f = e.target.files?.[0];
-    if (!f || f.size > MAX_INPUT_BYTES) return;
-    $('loadedFileLabel').textContent = `Loaded: ${f.name} (${(f.size / 1024).toFixed(1)} KB)`;
-    $('rawStatementBox').value = await f.text();
-    runCompile();
+    await handleUploadedFile(e.target.files?.[0]);
   });
 
   const dropSurface = $('dropSurface');
@@ -952,11 +1051,7 @@ if (typeof document !== 'undefined') {
   dropSurface.addEventListener('drop', async (e) => {
     e.preventDefault();
     dropSurface.classList.remove('dragover');
-    const f = e.dataTransfer?.files?.[0];
-    if (!f || f.size > MAX_INPUT_BYTES) return;
-    $('loadedFileLabel').textContent = `Loaded: ${f.name}`;
-    $('rawStatementBox').value = await f.text();
-    runCompile();
+    await handleUploadedFile(e.dataTransfer?.files?.[0]);
   });
 
   document.querySelectorAll('[data-filter]').forEach((btn) => {

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="referrer" content="no-referrer" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://*.googleusercontent.com; object-src 'none'; base-uri 'self'; form-action 'self' https://buy.polar.sh https://polar.sh;" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://*.googleusercontent.com; object-src 'none'; base-uri 'self'; form-action 'self' https://buy.polar.sh https://polar.sh;" />
   <title>Malaysian Bank Statement Auto-Categorizer &amp; Monthly P&amp;L Generator | Hyperfetch Tools</title>
   <meta name="description" content="Stop spending hours typing Excel codes. Drop Maybank, CIMB, Public Bank, GXBank, TNG eWallet CSVs or pasted PDF text to auto-tag GL codes, save merchant rules, and export clean Excel/CSV + Monthly P&L PDF on phone or desktop." />
   <link rel="canonical" href="https://hyperfetch-tools.github.io/statement-pnl/" />
@@ -41,7 +41,7 @@
     .license-pill {
       display: inline-flex; align-items: center; padding: 7px 12px; border-radius: 999px;
       font-size: 12px; font-weight: 700; background: rgba(255,255,255,0.14); color: #fff;
-      border: 1px solid rgba(255,255,255,0.22); cursor: pointer; min-height: 36px;
+      border: 1px solid rgba(255,255,225,0.22); cursor: pointer; min-height: 36px;
     }
     .license-pill.unlocked { background: var(--emerald); border-color: var(--emerald); }
 
@@ -196,17 +196,28 @@
 
     <section class="ledger-frame" aria-label="Statement Intake">
       <div class="frame-bar">
-        <div class="frame-step"><span class="step-badge">STEP 02</span><span>Drop Bank CSV or Paste Copied PDF Lines</span></div>
+        <div class="frame-step"><span class="step-badge">STEP 02</span><span>Drop Bank / TNG PDF or CSV (Even Password-Locked PDFs!)</span></div>
         <button type="button" id="btnToggleRaw" class="btn btn-ghost btn-xs">Paste Text / Edit</button>
       </div>
       <div class="intake-body">
-        <input type="file" id="csvFileInput" accept=".csv,.tsv,.txt" hidden />
+        <input type="file" id="csvFileInput" accept=".pdf,.csv,.tsv,.txt,application/pdf,text/csv" hidden />
         <div id="dropSurface" class="drop-surface">
-          <p class="drop-title" id="loadedFileLabel">Tap to pick a Bank / E-Wallet CSV or try the demo</p>
-          <p class="drop-hint">Handles Debit/Credit split columns, +/-, DR/CR, or raw pasted lines copied from banking PDFs on mobile.</p>
+          <p class="drop-title" id="loadedFileLabel">Tap to pick a Maybank / TNG PDF or Bank CSV</p>
+          <p class="drop-hint">Supports password-protected Maybank/CIMB/TNG <code>.pdf</code> statements (unlocked locally in RAM) + CSV/TSV + copied PDF text.</p>
           <div class="action-row">
-            <button type="button" id="btnSelectCsv" class="btn btn-emerald">Choose Statement CSV</button>
+            <button type="button" id="btnSelectCsv" class="btn btn-emerald">Choose Statement PDF / CSV</button>
             <button type="button" id="btnLoadDemo" class="btn btn-outline">Load 14-Row Malaysian Demo</button>
+          </div>
+        </div>
+        <div id="pdfPasswordBox" style="display:none;margin-top:12px;padding:14px;border-radius:10px;background:#fffbeb;border:1px solid #fcd34d;">
+          <div style="font-weight:700;color:#92400e;margin-bottom:4px;">Locked Bank PDF Detected — Unlock Locally in Browser RAM</div>
+          <div id="pdfPasswordMsg" style="font-size:12.5px;color:#78350f;margin-bottom:10px;">Your password &amp; PDF never leave your device.</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <input id="pdfPasswordInput" type="password" class="text-input mono" style="flex:1;min-width:180px;" placeholder="Enter PDF password (e.g. DDMMYYYY or NRIC)" />
+            <button type="button" id="btnUnlockPdf" class="btn btn-navy">Unlock PDF</button>
+          </div>
+          <div style="font-size:11.5px;color:#92400e;margin-top:8px;">
+            Common Malaysian formats: <strong>Maybank2u</strong> = birth date <code>DDMMYYYY</code> or 12-digit IC · <strong>TNG eWallet</strong> = last 4/6 digits of IC or phone · <strong>CIMB / Public Bank</strong> = IC / DOB.
           </div>
         </div>
         <div id="rawEditorDrawer" class="raw-editor-drawer">

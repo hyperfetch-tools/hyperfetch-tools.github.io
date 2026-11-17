@@ -122,7 +122,7 @@ export const BUILTIN_MY_RULES = [
   { rx: /\b(1688|taobao|alibaba|pos\s*laju|poslaju|j&t|ninjavan|ninja\s*van|dhl|lalamove|gdex|packaging|wholesale|supplier|lazada|shopee|mr\s*diy|daiso|popular|mph)\b/i, code: '5010' },
   { rx: /\b(tnb|tenaga\s*nasional|air\s*selangor|syabas|saj|indah\s*water|iwk|gas\s*malaysia|sesb|sarawak\s*energy)\b/i, code: '6110' },
   { rx: /\b(unifi|tm\s*tech|telekom|time\s*dotcom|maxis|celcom|digi|celcomdigi|u\s*mobile|umobile|yes\s*4g|yes\s*5g|card\s*reload)\b/i, code: '6120' },
-  { rx: /\b(petronas|shell|petron|bhp|caltex|touch\s*n\s*go|tng\s*rfid|plus\s*express|duke|akleh|grab|maxim|rapidkl|mrt|ktmb|parking)\b/i, code: '6210' },
+  { rx: /\b(petronas|shell|petron|bhp|caltex|touch\s*n\s*go|tng\s*rfid|plus\s*express|duke|akleh|grab|grabpay|maxim|rapidkl|mrt|ktmb|parking)\b/i, code: '6210' },
   { rx: /\b(jaya\s*grocer|village\s*grocer|mydin|99\s*speedmart|speedmart|kk\s*mart|7[\-\s]*eleven|lotus|aeon|mamak|kopi|zus|starbucks|mcdonald|kfc|foodpanda|shopeefood|grabfood|restaurant|restoran|cafe|bistro|mixue|chicha|chagee|familymart)\b/i, code: '6310' },
   { rx: /\b(receive\s*from\s*wallet|fund\s*transfer|transfer\s*to\s*wallet|duitnow\s*transfer)\b/i, code: '9010' },
   { rx: /\b(google\s*\*|google\s*ads|meta\s*ads|facebook|openai|chatgpt|canva|apify|adobe|microsoft|cloudflare|github|aws|digitalocean|apple\.com\/bill|spotify|netflix|youtube)\b/i, code: '6410' },
@@ -291,7 +291,7 @@ export function parseStatementInput(rawText) {
     .filter(Boolean);
 
   const dateStartRx = /^(\d{1,4}[\/\-]\d{1,2}[\/\-]\d{2,4}|\d{1,2}\s+[A-Za-z]{3}(?:\s+\d{2,4})?)\b/;
-  const footerStopRx = /^(\*?this is a system generated|page \d+ of \d+|for further enquiry|generated date|transaction period)/i;
+  const footerStopRx = /^(\*?this is a system generated|page \d+ of \d+|for further enquiry|generated date|transaction period|ending\s*balance|total\s*credit|total\s*debit|protected\s*by\s*pidm|malayan\s*banking|14th\s*floor|perhation|semua\s*maklumat|all\s*items\s*and\s*balances)/i;
 
   // Stitch multi-line wrapped PDF rows (like TNG Wallet History where Reference/Amount wrap across 2-5 lines)
   const stitchedRecords = [];
@@ -336,16 +336,20 @@ export function parseStatementInput(rawText) {
     const amtRaw = txnMatch[0];
     const balRaw = balMatch ? balMatch[0] : '';
 
-    // Description is everything before the Txn Amount, cleaned of status & long reference numbers
-    let descStr = sanitizeField(rest.slice(0, txnMatch.index), 160);
+    // Combine text before TxnAmount + continuation merchant lines after Balance (for Maybank MAE multi-line descriptions!)
+    const beforeAmt = rest.slice(0, txnMatch.index);
+    const afterBal = balMatch ? rest.slice(balMatch.index + balMatch[0].length) : '';
+    let descStr = sanitizeField(`${beforeAmt} ${afterBal}`.trim(), 180);
     if (/^(opening|closing|beginning|ending|brought\s*forward|balance\s*b\/f|balance\s*c\/f)/i.test(descStr)) continue;
     if (/^failed\b/i.test(descStr)) continue;
 
     descStr = descStr
       .replace(/^success\s+/i, '')
       .replace(/\b\d{10,}[A-Z0-9]*\b/g, ' ')
-      .replace(/\b\d{4}\s+\d{4,}\b/g, ' ')
+      .replace(/\b\d{4}[\-\s]\d{4,}\b/g, ' ')
+      .replace(/\b[A-Za-z0-9]{15,}\b/g, ' ')
       .replace(/\bTNGOW[A-Z0-9]+\b/gi, ' ')
+      .replace(/\s*\*\s*/g, ' · ')
       .replace(/\s+/g, ' ')
       .trim();
 

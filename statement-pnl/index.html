@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en-MY">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="referrer" content="no-referrer" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://*.googleusercontent.com; object-src 'none'; base-uri 'self'; form-action 'self' https://buy.polar.sh https://polar.sh;" />
+  <title>Malaysian Bank Statement Auto-Categorizer &amp; Monthly P&amp;L Generator | Hyperfetch Tools</title>
+  <meta name="description" content="Stop spending hours typing Excel codes. Drop Maybank, CIMB, Public Bank, GXBank, TNG eWallet CSVs or pasted PDF text to auto-tag GL codes, save merchant rules, and export clean Excel/CSV + Monthly P&L PDF on phone or desktop." />
+  <link rel="canonical" href="https://hyperfetch-tools.github.io/statement-pnl/" />
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-subtle: #f1f5f9;
+      --border: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --navy: #0b1f3a;
+      --navy-hover: #152e52;
+      --ink: #0f172a;
+      --ink-secondary: #475569;
+      --ink-muted: #64748b;
+      --emerald: #059669;
+      --emerald-dark: #047857;
+      --emerald-bg: #ecfdf5;
+      --crimson: #b91c1c;
+      --amber-bg: #fffbeb;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; }
+    html, body { max-width: 100%; overflow-x: hidden; }
+    body { margin: 0; font-family: var(--font-sans); background: var(--bg); color: var(--ink); font-size: 14px; line-height: 1.5; }
+    .mono { font-family: var(--font-mono); }
+
+    .topbar { background: var(--navy); color: #fff; padding: 10px 14px; position: sticky; top: 0; z-index: 40; }
+    .topbar-inner { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .brand-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .back-pill { color: #cbd5e1; text-decoration: none; font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: 6px; background: rgba(255,255,255,0.09); }
+    .license-pill {
+      display: inline-flex; align-items: center; padding: 7px 12px; border-radius: 999px;
+      font-size: 12px; font-weight: 700; background: rgba(255,255,255,0.14); color: #fff;
+      border: 1px solid rgba(255,255,255,0.22); cursor: pointer; min-height: 36px;
+    }
+    .license-pill.unlocked { background: var(--emerald); border-color: var(--emerald); }
+
+    .workspace { max-width: 1200px; margin: 16px auto 56px; padding: 0 14px; }
+    .hero-box {
+      background: linear-gradient(135deg, #0b1f3a 0%, #173664 100%); color: #fff;
+      border-radius: 12px; padding: 20px; margin-bottom: 16px;
+    }
+    .hero-box h1 { margin: 0 0 6px; font-size: clamp(1.2rem, 3vw, 1.65rem); line-height: 1.25; }
+    .hero-box p { margin: 0; color: #cbd5e1; font-size: 13.5px; }
+
+    .ledger-frame { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(15,23,42,0.04); }
+    .frame-bar { padding: 12px 14px; background: var(--surface-subtle); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .frame-step { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--navy); font-size: 13.5px; }
+    .step-badge { font-family: var(--font-mono); font-size: 11px; padding: 2px 7px; border-radius: 5px; background: var(--navy); color: #fff; }
+
+    .profile-grid { padding: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+    .field-label { display: block; font-size: 11.5px; font-weight: 700; color: var(--ink-secondary); margin-bottom: 4px; }
+    .text-input { width: 100%; padding: 10px; border: 1px solid var(--border-strong); border-radius: 7px; font-family: inherit; font-size: 14px; color: var(--ink); background: #fff; }
+
+    .intake-body { padding: 14px; }
+    .drop-surface { border: 2px dashed var(--border-strong); border-radius: 10px; padding: 22px 14px; text-align: center; background: #fcfdff; }
+    .drop-surface.dragover { border-color: var(--emerald); background: var(--emerald-bg); }
+    .drop-title { font-weight: 700; font-size: 15px; color: var(--navy); margin: 4px 0; }
+    .drop-hint { font-size: 12.5px; color: var(--ink-muted); margin: 0 0 14px; }
+    .action-row { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 10px 15px; min-height: 42px; border-radius: 8px; font-weight: 700; font-size: 13.5px;
+      cursor: pointer; border: 1px solid transparent; font-family: inherit; text-decoration: none;
+    }
+    .btn-xs { padding: 6px 10px; min-height: 34px; font-size: 12px; border-radius: 6px; }
+    .btn-emerald { background: var(--emerald); color: #fff; }
+    .btn-emerald:hover { background: var(--emerald-dark); }
+    .btn-navy { background: var(--navy); color: #fff; }
+    .btn-outline { background: #fff; color: var(--navy); border-color: var(--border-strong); }
+    .btn-ghost { background: transparent; color: var(--ink-secondary); padding: 6px 10px; min-height: 36px; }
+
+    .raw-editor-drawer { display: none; margin-top: 12px; }
+    .raw-editor-drawer.open { display: block; }
+    textarea { width: 100%; border: 1px solid var(--border-strong); border-radius: 8px; padding: 10px; font-family: var(--font-mono); font-size: 12.5px; }
+
+    /* KPI Ribbon: 4 cols desktop, 2x2 on phone */
+    .metrics-ribbon { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--border); }
+    .metric-cell { padding: 12px 14px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .metric-val { font-family: var(--font-mono); font-size: 17px; font-weight: 700; color: var(--navy); }
+    .metric-val.inflow { color: var(--emerald-dark); }
+    .metric-val.outflow { color: var(--crimson); }
+    .metric-lbl { font-size: 11.5px; font-weight: 700; color: var(--ink-muted); margin-top: 2px; }
+
+    /* Category Breakdown */
+    .cat-section { padding: 14px; border-bottom: 1px solid var(--border); display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px 18px; }
+    .cat-row { font-size: 12.5px; }
+    .cat-top { display: flex; justify-content: space-between; margin-bottom: 4px; gap: 8px; }
+    .cat-bar-bg { height: 7px; background: var(--surface-subtle); border-radius: 999px; overflow: hidden; }
+    .cat-bar-fill { height: 100%; background: var(--navy); border-radius: 999px; }
+    .cat-bar-fill.income { background: var(--emerald); }
+
+    .toolbar { padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; border-bottom: 1px solid var(--border); }
+    .segmented { display: inline-flex; background: var(--surface-subtle); padding: 3px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; }
+    .seg-btn { border: 0; background: transparent; padding: 7px 11px; border-radius: 6px; font-size: 12px; font-weight: 700; color: var(--ink-secondary); cursor: pointer; }
+    .seg-btn.active { background: #fff; color: var(--navy); box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+    .rule-toast { font-size: 12px; font-weight: 600; color: var(--emerald-dark); }
+
+    .code-select { width: 100%; max-width: 240px; padding: 7px 8px; border: 1px solid var(--border-strong); border-radius: 6px; font-size: 12.5px; background: #fff; color: var(--ink); }
+
+    /* Desktop Table vs Phone Cards */
+    .desktop-table-wrap { overflow-x: auto; }
+    table.ledger-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    table.ledger-table th, table.ledger-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); text-align: left; }
+    table.ledger-table th { background: #f8fafc; font-size: 11px; text-transform: uppercase; color: var(--ink-muted); }
+    table.ledger-table tr.row-review { background: var(--amber-bg); }
+    .num { text-align: right !important; white-space: nowrap; }
+    .amt-in { color: var(--emerald-dark); font-weight: 700; }
+    .amt-out { color: var(--crimson); font-weight: 700; }
+
+    .mobile-cards-wrap { display: none; padding: 10px; gap: 10px; flex-direction: column; }
+    .txn-card { border: 1px solid var(--border); border-radius: 10px; padding: 12px; background: #fff; }
+    .txn-card.review { background: var(--amber-bg); border-color: #fcd34d; }
+    .txn-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .txn-date { font-size: 12px; color: var(--ink-muted); }
+    .txn-amt { font-size: 15px; }
+    .txn-desc { font-weight: 600; font-size: 13.5px; color: var(--ink); margin-bottom: 10px; word-break: break-word; }
+    .txn-actions { display: flex; gap: 8px; align-items: center; }
+    .txn-actions .code-select { flex: 1; max-width: none; min-height: 38px; }
+
+    .export-footer { padding: 14px; background: #f8fafc; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .export-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .drawer-backdrop { display: none; position: fixed; inset: 0; background: rgba(11,31,58,0.55); z-index: 100; justify-content: flex-end; }
+    .drawer-backdrop.open { display: flex; }
+    .checkout-drawer { width: 100%; max-width: 450px; background: #fff; height: 100%; overflow-y: auto; display: flex; flex-direction: column; }
+    .drawer-head { padding: 16px 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; }
+    .drawer-body { padding: 16px 18px 32px; }
+    .price-summary-card { background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+    .kv-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; font-size: 13px; }
+    .kv-key { color: var(--ink-muted); }
+    .kv-val { font-weight: 700; color: var(--navy); font-family: var(--font-mono); }
+
+    @media (max-width: 768px) {
+      .metrics-ribbon { grid-template-columns: repeat(2, 1fr); }
+      .desktop-table-wrap { display: none; }
+      .mobile-cards-wrap { display: flex; }
+      .hide-mobile { display: none; }
+      .export-btns { width: 100%; }
+      .export-btns .btn { flex: 1 1 100%; }
+      .action-row .btn { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand-row">
+        <a href="https://hyperfetch-tools.github.io/" class="back-pill">← All Tools</a>
+        <strong style="font-size:14.5px;">Statement Auto-Coder &amp; P&amp;L</strong>
+        <a href="https://hyperfetch-tools.github.io/ea-payslip/" class="back-pill hide-mobile">Borang EA PDF →</a>
+      </div>
+      <button type="button" id="licenseStatusBadge" class="license-pill">
+        <span id="licenseBadgeText">Free (25 Rows) · Unlock RM 39</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="hero-box">
+      <h1>1-Second Bank Statement Auto-Coder &amp; Monthly P&amp;L Report</h1>
+      <p>Stop spending 3 hours typing codes in Excel. Drop any Maybank, CIMB, Public Bank, GXBank, or TNG eWallet CSV — or paste copied PDF statement lines right from your phone. Auto-tags 100+ Malaysian merchants, remembers your custom codes forever, and exports clean Excel CSV + 1-page P&amp;L PDF.</p>
+    </section>
+
+    <section class="ledger-frame" aria-label="Report Details">
+      <div class="frame-bar">
+        <div class="frame-step"><span class="step-badge">STEP 01</span><span>Report Header</span></div>
+        <span class="mono" style="font-size:11px;color:var(--emerald-dark);font-weight:600;">100% Private Browser RAM</span>
+      </div>
+      <div class="profile-grid">
+        <div>
+          <label class="field-label" for="repTitle">Report Title</label>
+          <input id="repTitle" class="text-input" value="Monthly Spending & Earning P&L Report" />
+        </div>
+        <div>
+          <label class="field-label" for="repEntity">Name / Company</label>
+          <input id="repEntity" class="text-input" value="PERSONAL / SME ACCOUNT" />
+        </div>
+        <div>
+          <label class="field-label" for="repMonth">Statement Month</label>
+          <input id="repMonth" type="month" class="text-input mono" value="2026-10" />
+        </div>
+      </div>
+    </section>
+
+    <section class="ledger-frame" aria-label="Statement Intake">
+      <div class="frame-bar">
+        <div class="frame-step"><span class="step-badge">STEP 02</span><span>Drop Bank CSV or Paste Copied PDF Lines</span></div>
+        <button type="button" id="btnToggleRaw" class="btn btn-ghost btn-xs">Paste Text / Edit</button>
+      </div>
+      <div class="intake-body">
+        <input type="file" id="csvFileInput" accept=".csv,.tsv,.txt" hidden />
+        <div id="dropSurface" class="drop-surface">
+          <p class="drop-title" id="loadedFileLabel">Tap to pick a Bank / E-Wallet CSV or try the demo</p>
+          <p class="drop-hint">Handles Debit/Credit split columns, +/-, DR/CR, or raw pasted lines copied from banking PDFs on mobile.</p>
+          <div class="action-row">
+            <button type="button" id="btnSelectCsv" class="btn btn-emerald">Choose Statement CSV</button>
+            <button type="button" id="btnLoadDemo" class="btn btn-outline">Load 14-Row Malaysian Demo</button>
+          </div>
+        </div>
+        <div id="rawEditorDrawer" class="raw-editor-drawer">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <span class="mono" style="font-size:11px;color:var(--ink-muted);">PASTE CSV OR BANK STATEMENT TEXT</span>
+            <button type="button" id="btnRecompile" class="btn btn-outline btn-xs">Auto-Code Now</button>
+          </div>
+          <textarea id="rawStatementBox" rows="6" placeholder="Paste CSV rows OR copy-pasted lines like: 14/10/2026 DUITNOW QR ALI MAMAK -14.50"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <section id="resultsPanel" class="ledger-frame" style="display:none;" aria-label="Auto-Coded Results">
+      <div class="frame-bar">
+        <div class="frame-step"><span class="step-badge">STEP 03</span><span>Instant P&amp;L &amp; 1-Tap Rule Memory</span></div>
+        <span id="totalsSummary" class="mono" style="font-size:11.5px;color:var(--navy);font-weight:700;"></span>
+      </div>
+
+      <div class="metrics-ribbon" id="diagStats"></div>
+      <div class="cat-section" id="categoryBars"></div>
+
+      <div class="toolbar">
+        <div class="segmented">
+          <button type="button" class="seg-btn active" data-filter="ALL">All</button>
+          <button type="button" class="seg-btn" data-filter="UNMATCHED">Needs Review</button>
+          <button type="button" class="seg-btn" data-filter="INFLOW">Earnings (+)</button>
+          <button type="button" class="seg-btn" data-filter="OUTFLOW">Spending (-)</button>
+        </div>
+        <div id="ruleToast" class="rule-toast">Tip: Change any code &amp; tap Save Rule — it remembers forever!</div>
+      </div>
+
+      <div class="desktop-table-wrap">
+        <table class="ledger-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Description</th>
+              <th class="num">Amount (MYR)</th>
+              <th>GL Code / Category</th>
+              <th>Remember Rule</th>
+            </tr>
+          </thead>
+          <tbody id="previewTableBody"></tbody>
+        </table>
+      </div>
+
+      <div id="mobileCardsWrap" class="mobile-cards-wrap"></div>
+
+      <div class="export-footer">
+        <div>
+          <div id="exportHeadline" style="font-weight:700;color:var(--navy);font-size:13px;"></div>
+          <div style="font-size:11.5px;color:var(--ink-muted);">Shares the same RM 39 MyPayroll / RM 55 Master Bundle key across all 5 tools.</div>
+        </div>
+        <div class="export-btns">
+          <button type="button" id="btnExportCsv" class="btn btn-outline">Export Categorized Excel (.csv)</button>
+          <button type="button" id="btnExportPdf" class="btn btn-emerald">Download Monthly P&amp;L (.pdf)</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="drawer-backdrop" id="unlockDrawer">
+    <aside class="checkout-drawer" aria-labelledby="drawerTitle">
+      <div class="drawer-head">
+        <div>
+          <div class="mono" style="font-size:11px;font-weight:700;color:var(--emerald-dark);">PAY ONCE · OWN FOREVER</div>
+          <h2 id="drawerTitle" style="margin:4px 0 0;font-size:18px;color:var(--navy);">Unlock Unlimited Rows &amp; Clean P&amp;L PDF</h2>
+        </div>
+        <button type="button" id="btnCloseDrawer" class="btn btn-ghost btn-xs">✕</button>
+      </div>
+      <div class="drawer-body">
+        <div style="margin-bottom:12px;">
+          <label class="field-label">1. Choose Lifetime License Tier</label>
+          <div class="segmented" style="width:100%;display:grid;grid-template-columns:1fr 1.1fr;">
+            <button type="button" id="tierBtnSingle" class="seg-btn active">Statement + Payroll + EA + GIRO (RM 39)</button>
+            <button type="button" id="tierBtnBundle" class="seg-btn">Master Bundle +MyInvois (RM 55)</button>
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label class="field-label">2. Select Payment Rail</label>
+          <div class="segmented" style="width:100%;display:grid;grid-template-columns:1.2fr 1fr;">
+            <button type="button" id="railBtnCard" class="seg-btn active">Card / Apple &amp; Google Pay</button>
+            <button type="button" id="railBtnWise" class="seg-btn">Wise Transfer (MYR)</button>
+          </div>
+        </div>
+
+        <div id="cardPaySection">
+          <div class="price-summary-card">
+            <div class="kv-row"><span class="kv-key">Plan</span><span class="kv-val" id="cardProductLabel" style="font-family:var(--font-sans);">Statement P&amp;L + MyPayroll + Borang EA + GIRO</span></div>
+            <div class="kv-row"><span class="kv-key">One-Time Total</span><span class="kv-val" id="cardPriceLabel" style="color:var(--emerald-dark);">USD 9.99 (~RM 39 One-Time)</span></div>
+            <a id="polarCardBuyLink" href="https://buy.polar.sh/polar_cl_YlpL3oaZd36nGEWPvJbSyGZ143JKFgFh5z9Q81nmmTJ" class="btn btn-emerald" style="width:100%;margin-top:12px;">Pay Once by Card / Apple Pay →</a>
+          </div>
+        </div>
+
+        <div id="wisePaySection" style="display:none;">
+          <div class="price-summary-card">
+            <label class="field-label" for="buyerEmailInput">Receipt Email (Auto-delivers your key)</label>
+            <input id="buyerEmailInput" type="email" class="text-input" placeholder="you@email.com" style="margin-bottom:10px;" />
+            <div class="kv-row"><span class="kv-key">Wise Email</span><span class="kv-val">jycheah7@gmail.com <button type="button" id="btnCopyWiseEmail" class="btn btn-outline btn-xs">Copy</button></span></div>
+            <div class="kv-row"><span class="kv-key">Exact Amount</span><span class="kv-val"><span id="exactPayAmount" data-raw="39.01" style="color:var(--emerald-dark);">MYR 39.01</span> <button type="button" id="btnCopyWiseAmt" class="btn btn-outline btn-xs">Copy</button></span></div>
+            <div class="kv-row"><span class="kv-key">Reference</span><span class="kv-val" id="exactOrderRef">ORD-...</span></div>
+            <div id="orderPollStatus" class="mono" style="font-size:11.5px;color:var(--emerald-dark);margin-top:8px;"></div>
+          </div>
+        </div>
+
+        <hr style="border:0;border-top:1px solid var(--border);margin:16px 0;" />
+        <label class="field-label" for="licenseInput">Already have a MYPAYR or MYBUND Key?</label>
+        <div style="display:flex;gap:8px;">
+          <input id="licenseInput" class="text-input mono" placeholder="ZYK-MYPAYR-XXXXXXXX-XXXXXXXXXX" />
+          <button type="button" id="btnActivateKey" class="btn btn-navy">Activate</button>
+        </div>
+        <div id="keyMsg" class="mono" style="font-size:12px;margin-top:8px;color:var(--emerald-dark);"></div>
+      </div>
+    </aside>
+  </div>
+
+  <script type="module" src="./pnl-app.mjs"></script>
+</body>
+</html>
